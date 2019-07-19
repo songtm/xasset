@@ -17,7 +17,8 @@ namespace Plugins.XAsset.Editor.AutoBundle
     {
         private string _assetPath;
         private string _bundleName;
-        private List<string> _deps;
+        private List<string> _parents = new List<string>();
+        private List<string> _children = new List<string>();
         private AssetBundleExportType _exportType;
         public static Dictionary<string, AssetTarget> allAssetTargts = new Dictionary<string, AssetTarget>();
 
@@ -30,14 +31,14 @@ namespace Plugins.XAsset.Editor.AutoBundle
             {
                 Debug.Log("add:" + assetPath);
                 allAssetTargts.Add(assetPath, this);
-                _deps = new List<string>();
                 string[] dependencies = AssetDatabase.GetDependencies(assetPath, false);
                 foreach (var dep in dependencies)
                 {
-                    if (dep.EndsWith(".cs")) continue;
+                    if (dep.EndsWith(".cs") || dep.EndsWith(".prefab")) continue;
                     if (!File.Exists(Path.Combine(Path.GetDirectoryName(Application.dataPath), dep))) continue;
                     Debug.Log("    dep:" + dep);
-                    _deps.Add(dep);
+                    _parents.Add(dep);
+                    new AssetTarget(dep, null, AssetBundleExportType.Asset);
                 }
             }
         }
@@ -46,19 +47,31 @@ namespace Plugins.XAsset.Editor.AutoBundle
         {
             foreach (var assetTarget in allAssetTargts)
             {
-//                Debug.Log(":" + assetTarget.Key);
-//                string[] dependencies = AssetDatabase.GetDependencies(assetTarget.Key, false);
-//                foreach (var dep in dependencies)
-//                {
-//                    if (dep.EndsWith(".cs")) continue;
-//                    if (!File.Exists(Path.Combine(Path.GetDirectoryName(Application.dataPath), dep))) continue;
-//                    Debug.Log("    " + dep);
-//
-//                    new AssetTarget(dep, null, AssetBundleExportType.Asset);
-//                }
+                foreach (var parent in assetTarget.Value._parents)
+                {
+                    allAssetTargts[parent]._children.Add(assetTarget.Key);
+                }
+
             }
+            //todo: output relation graph!
         }
 
+        private static void GetRoot(AssetTarget target, HashSet<AssetTarget> rootSet)
+        {
+            switch (target._exportType)
+            {
+                case AssetBundleExportType.Shared:
+                case AssetBundleExportType.Root:
+                    rootSet.Add(target);
+                    break;
+                default:
+                    foreach (AssetTarget item in _dependChildrenSet)
+                    {
+                        item.GetRoot(rootSet);
+                    }
+                    break;
+            }
+        }
         public static string GetBundleName(DirectoryInfo bundleDir, FileInfo file, PackMode fPackMode, string parttern)
         {
             switch (fPackMode)
