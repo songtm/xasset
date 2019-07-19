@@ -49,7 +49,7 @@ namespace Plugins.XAsset.Editor.AutoBundle
                 parttern = "*.*";
 
             FileInfo[] prefabs = bundleDir.GetFiles(parttern, searchOption);
-
+            AssetTarget.allAssetTargts.Clear();
             foreach (FileInfo file in prefabs)
             {
                 if (file.Extension.Contains("meta"))
@@ -59,8 +59,10 @@ namespace Plugins.XAsset.Editor.AutoBundle
                 var bundleName = GetBundleName(bundleDir, file, fPackMode, parttern);
                 var exportType = AssetBundleExportType.Root;
 
-                AssetTarget target = new AssetTarget(assetPath, bundleName, exportType);
+                new AssetTarget(assetPath, bundleName, exportType);
             }
+
+            AssetTarget.ProcessRelations();
         }
 
         public static string GetBundleName(DirectoryInfo bundleDir, FileInfo file, PackMode fPackMode, string parttern)

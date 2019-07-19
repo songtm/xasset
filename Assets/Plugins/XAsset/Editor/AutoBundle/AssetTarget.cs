@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEditor;
+using UnityEngine;
 
 namespace Plugins.XAsset.Editor.AutoBundle
 {
@@ -9,24 +10,37 @@ namespace Plugins.XAsset.Editor.AutoBundle
         Asset,
         Shared
     }
+
     public class AssetTarget
     {
-        public string assetPath;
-        public string bundleName;
-        public List<AssetTarget> deps;
-        public AssetBundleExportType exportType;
+        private string _assetPath;
+        private string _bundleName;
+        private List<AssetTarget> _deps;
+        private AssetBundleExportType _exportType;
+        public static List<AssetTarget> allAssetTargts = new List<AssetTarget>();
 
         public AssetTarget(string assetPath, string bundleName, AssetBundleExportType exportType)
         {
-            this.assetPath = assetPath;
-            this.bundleName = bundleName;
-            this.exportType = exportType;
+            _assetPath = assetPath;
+            _bundleName = bundleName;
+            _exportType = exportType;
+            allAssetTargts.Add(this);
         }
 
-        [MenuItem("Assets/AssetBundles/AutoBundle")]
-        static void BuildBundeConfig()
+        public static void ProcessRelations()
         {
+            foreach (var assetTarget in allAssetTargts)
+            {
+                Debug.Log("-----"+assetTarget._assetPath);
+                string[] dependencies = AssetDatabase.GetDependencies(assetTarget._assetPath, false);
+                foreach (var dep in dependencies)
+                {
+                    if (dep.EndsWith(".cs")) continue;
+                    if (!dep.Contains(Application.dataPath)) continue;
+                    Debug.Log("    "+dep);
 
+                }
+            }
         }
     }
 }
