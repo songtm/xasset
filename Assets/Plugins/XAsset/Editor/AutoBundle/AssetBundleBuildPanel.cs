@@ -56,7 +56,7 @@ namespace Plugins.XAsset.Editor.AutoBundle
                     continue;
 
                 var assetPath = "Assets" + file.FullName.Replace(Application.dataPath, "");
-                var bundleName = GetBundleName(bundleDir, file, fPackMode, parttern);
+                var bundleName = AssetTarget.GetBundleName(bundleDir, file, fPackMode, parttern);
                 var exportType = AssetBundleExportType.Root;
 
                 new AssetTarget(assetPath, bundleName, exportType);
@@ -65,37 +65,6 @@ namespace Plugins.XAsset.Editor.AutoBundle
             AssetTarget.ProcessRelations();
         }
 
-        public static string GetBundleName(DirectoryInfo bundleDir, FileInfo file, PackMode fPackMode, string parttern)
-        {
-            switch (fPackMode)
-            {
-                case PackMode.Indepent:
-                    var path = file.FullName.Replace(Application.dataPath, "");
-                    return path;
-                case PackMode.AllInOne:
-                    var str1 = "__"+bundleDir.ToString()+parttern+fPackMode;
-//                    abName =  HashUtil.Get(str1)+".ab";
-                    return bundleDir.ToString() + "/" + parttern + "("+fPackMode+")";
-                case PackMode.PerAnyDir:
-                    var d = file.Directory;
-                    var str2 = bundleDir.ToString() + d.FullName.Replace(bundleDir.FullName, "");
-//                    abName = HashUtil.Get("_" + str2) + ".ab";
-                    return str2 + "/" + parttern + "("+fPackMode+")";
-                case PackMode.PerSubDir:
-                    var dir = file.Directory;
-                    var subDir = "";
-                    while (dir.FullName != bundleDir.FullName)
-                    {
-                        subDir = dir.Name + "/";
-                        dir = dir.Parent;
-                    }
-                    var str = "____"+bundleDir.ToString()+subDir+parttern+fPackMode;
-//                    abName = HashUtil.Get(str)+".ab";
-                    return bundleDir.ToString()+"/"+subDir+parttern + "("+fPackMode+")";
-                default:
-                    return null;
-            }
-        }
 
 		static T LoadAssetAtPath<T>(string path) where T:Object
 		{
