@@ -144,6 +144,7 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
                     var depTarget = AllAssetTargts[depname];
                     if (!bundleMap.ContainsKey(assetTarget._bundleName) || !bundleMap.ContainsKey(depTarget._bundleName))
                         continue;
+                    if (assetTarget._bundleName == depTarget._bundleName) continue;
                     string edge = '"' + assetTarget._bundleName+ "\"->\"" + depTarget._bundleName+ '"';
                     bool needShow = true;
                     if (mergeShow)
