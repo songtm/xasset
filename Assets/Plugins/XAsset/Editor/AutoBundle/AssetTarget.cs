@@ -36,7 +36,7 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
             var name = Path.GetFileNameWithoutExtension(_bundleName);
             _bundleName = Path.Combine(dir, name).Replace("\\", "/").ToLower();
             if (bundleName == null)
-                _bundleName += "_auto";
+                _bundleName += "_auto";//todo atlas可以这里判断是不是位于atlas目录,是就弄到atlas里面!
             _exportType = exportType;
             if (!AllAssetTargts.ContainsKey(assetPath))
             {
