@@ -35,7 +35,8 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
             var dir = Path.GetDirectoryName(_bundleName);
             var name = Path.GetFileNameWithoutExtension(_bundleName);
             _bundleName = Path.Combine(dir, name).Replace("\\", "/").ToLower();
-
+            if (bundleName == null)
+                _bundleName += "_auto";
             _exportType = exportType;
             if (!AllAssetTargts.ContainsKey(assetPath))
             {
@@ -86,12 +87,12 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
                 }
             }
 
-            SaveRelationMap();
+            SaveRelationMap(bundleMap);
 
             return bundleMap;
         }
 
-        private static void SaveRelationMap()
+        private static void SaveRelationMap(Dictionary<string, List<string>> bundleMap)
         {
             string header = @"digraph dep {
     fontname = ""Microsoft YaHei"";
@@ -107,7 +108,7 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
             foreach (KeyValuePair<string, AssetTarget> assetTarget in AllAssetTargts)
             {
                 var bundleName = assetTarget.Value._bundleName;
-                if (assetTarget.Value._exportType != AssetBundleExportType.Asset && nodes.Add(bundleName))
+                if (bundleMap.ContainsKey(bundleName) && nodes.Add(bundleName))
                 {
 //                    var deps = manifest.GetAllDependencies(assetTarget.abFileName);
                     builder.Append("\t");
@@ -141,7 +142,8 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
                 foreach (var depname in deps)
                 {
                     var depTarget = AllAssetTargts[depname];
-
+                    if (!bundleMap.ContainsKey(assetTarget._bundleName) || !bundleMap.ContainsKey(depTarget._bundleName))
+                        continue;
                     string edge = '"' + assetTarget._bundleName+ "\"->\"" + depTarget._bundleName+ '"';
                     bool needShow = true;
                     if (mergeShow)

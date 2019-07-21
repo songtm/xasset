@@ -28,6 +28,7 @@ namespace Plugins.XAsset.Editor.AutoBundle
 
             if (config == null) return;
 
+            AssetTarget.AllAssetTargts.Clear();
             foreach (var f in config.filters)
             {
                 if (f.valid) AddRootTargets(new DirectoryInfo(f.path), f.packMode, f.filter);
@@ -59,7 +60,6 @@ namespace Plugins.XAsset.Editor.AutoBundle
                 pattern = "*.*";
 
             FileInfo[] prefabs = bundleDir.GetFiles(pattern, searchOption);
-            AssetTarget.AllAssetTargts.Clear();
             foreach (FileInfo file in prefabs)
             {
                 if (file.Extension.Contains("meta"))
