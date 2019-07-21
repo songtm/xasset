@@ -82,7 +82,7 @@ namespace Plugins.XAsset.Editor.AutoBundle
 #endif
         }
 
-        const string savePath = "Assets/bundle_rule.asset";
+        public static string savePath = "Assets/bundle_rule.asset";
 
         private AssetBundleBuildConfig _config;
         private ReorderableList _list;

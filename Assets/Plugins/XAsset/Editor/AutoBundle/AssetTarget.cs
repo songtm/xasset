@@ -1,6 +1,8 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using Plugins.XAsset.Editor;
 using Plugins.XAsset.Editor.AutoBundle;
 using UnityEditor;
@@ -18,6 +20,7 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
     public class AssetTarget
     {
         private readonly string _bundleName;
+        private readonly string _assetPath;
         private readonly List<string> _parents = new List<string>();
         private readonly List<string> _children = new List<string>();
         private AssetBundleExportType _exportType;
@@ -27,6 +30,7 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
 
         public AssetTarget(string assetPath, string bundleName, AssetBundleExportType exportType)
         {
+            _assetPath = assetPath;
             _bundleName = AssetsMenuItem.TrimedAssetBundleName(bundleName ?? assetPath);
             var dir = Path.GetDirectoryName(_bundleName);
             var name = Path.GetFileNameWithoutExtension(_bundleName);
@@ -82,7 +86,87 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
                 }
             }
 
+            SaveRelationMap();
+
             return bundleMap;
+        }
+
+        private static void SaveRelationMap()
+        {
+            string header = @"digraph dep {
+    fontname = ""Microsoft YaHei"";
+    label = ""AssetBundle 依赖关系""
+    nodesep=0.5
+    rankdir = ""LR""
+    fontsize = 12;
+    node [ fontname = ""Microsoft YaHei"", fontsize = 12, shape = ""record"" color=""skyblue""];
+    edge [ fontname = ""Microsoft YaHei"", fontsize = 12 , color=""coral""];";
+            StringBuilder builder = new StringBuilder();
+            builder.AppendLine(header);
+            var nodes = new HashSet<string>();
+            foreach (KeyValuePair<string, AssetTarget> assetTarget in AllAssetTargts)
+            {
+                var bundleName = assetTarget.Value._bundleName;
+                if (nodes.Add(bundleName))
+                {
+//                    var deps = manifest.GetAllDependencies(assetTarget.abFileName);
+                    builder.Append("\t");
+                    builder.Append('"' + bundleName  + '"');
+                    if (assetTarget.Value._exportType == AssetBundleExportType.Shared)
+                        builder.Append(
+                            " [color=\"red\", fontcolor=\"red\", shape=\"ellipse\", fillcolor=\"lightblue1\", style=\"filled\"]");
+                    else if (assetTarget.Value._exportType == AssetBundleExportType.Root)
+                    {
+                        builder.Append(
+                            string.Format(" [color=\"blue\", fontcolor=\"blue\", label=\"{{<f0> {0} |<f1> * }}\"]",
+                                bundleName));
+                    }
+
+
+                    builder.AppendLine();
+                }
+            }
+
+            var assetBundleBuildConfig = AssetDatabase.LoadAssetAtPath<AssetBundleBuildConfig>(AssetBundleBuildPanel.savePath);
+
+            bool showDepResName = assetBundleBuildConfig.graphMode == AssetBundleBuildConfig.GraphMode.ShowLinkName;
+            bool mergeShow =
+                assetBundleBuildConfig.graphMode ==
+                AssetBundleBuildConfig.GraphMode.MergeLink; //一个包里有多个资源依赖同一个资源 就会有多条链接
+            var linked = new HashSet<string>();
+            foreach (var kv in AllAssetTargts)
+            {
+                var assetTarget = kv.Value;
+                var deps = assetTarget._parents;
+                foreach (var depname in deps)
+                {
+                    var depTarget = AllAssetTargts[depname];
+
+                    string edge = '"' + assetTarget._bundleName+ "\"->\"" + depTarget._bundleName+ '"';
+                    bool needShow = true;
+                    if (mergeShow)
+                    {
+                        if (!linked.Add(edge))
+                        {
+                            needShow = false;
+                        }
+                    }
+
+                    if (needShow)
+                    {
+                        if (!mergeShow && showDepResName && assetTarget._bundleName.Contains("*"))
+                            edge += string.Format(" [label=\"{0}({1})\"]", Path.GetFileName(assetTarget._assetPath),
+                                Path.GetFileName(depTarget._assetPath));
+                        builder.Append("\t");
+                        builder.AppendLine(edge);
+                    }
+                }
+
+                builder.AppendLine();
+            }
+
+            builder.AppendLine("}");
+            File.WriteAllText(Path.Combine(Application.dataPath, "00dep.dot"), builder.ToString());
         }
 
         private static void MarkSharedAssets(AssetTarget target)
@@ -136,12 +220,12 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
                     var path = file.FullName.Replace(pre, "");
                     return path;
                 case PackMode.AllInOne:
-                    return bundleDir + "_t" + (int)fPackMode;
+                    return bundleDir + "_t" + (int) fPackMode;
                 case PackMode.PerAnyDir:
                     var d = file.Directory;
                     // ReSharper disable once PossibleNullReferenceException
                     var str2 = bundleDir + d.FullName.Replace(bundleDir.FullName, "");
-                    return str2 + "_t" + (int)fPackMode;
+                    return str2 + "_t" + (int) fPackMode;
                 case PackMode.PerSubDir:
                     var dir = file.Directory;
                     var subDir = "";
@@ -152,7 +236,7 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
                         dir = dir.Parent;
                     }
 
-                    return bundleDir + Path.DirectorySeparatorChar.ToString() + subDir + "_t" + (int)fPackMode;
+                    return bundleDir + Path.DirectorySeparatorChar.ToString() + subDir + "_t" + (int) fPackMode;
                 default:
                     return null;
             }
