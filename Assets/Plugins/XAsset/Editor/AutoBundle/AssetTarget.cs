@@ -17,10 +17,12 @@ namespace Plugins.XAsset.Editor.AutoBundle
     {
         private string _assetPath;
         private string _bundleName;
-        private List<string> _parents = new List<string>();
-        private List<string> _children = new List<string>();
+        private readonly List<string> _parents = new List<string>();
+        private readonly List<string> _children = new List<string>();
         private AssetBundleExportType _exportType;
-        public static Dictionary<string, AssetTarget> allAssetTargts = new Dictionary<string, AssetTarget>();
+        public static readonly Dictionary<string, AssetTarget> allAssetTargts = new Dictionary<string, AssetTarget>();
+
+        private bool _marked = false;
 
         public AssetTarget(string assetPath, string bundleName, AssetBundleExportType exportType)
         {
@@ -43,7 +45,7 @@ namespace Plugins.XAsset.Editor.AutoBundle
             }
         }
 
-        public static void ProcessRelations()
+        public static Dictionary<string, List<string>> ProcessRelations()
         {
             foreach (var assetTarget in allAssetTargts)
             {
@@ -51,9 +53,54 @@ namespace Plugins.XAsset.Editor.AutoBundle
                 {
                     allAssetTargts[parent]._children.Add(assetTarget.Key);
                 }
-
             }
             //todo: output relation graph!
+
+            foreach (var target in allAssetTargts)
+            {
+                MarkSharedAssets(target.Value);
+            }
+
+            var bundleMap = new Dictionary<string, List<string>>();
+            foreach (var assetTargt in allAssetTargts)
+            {
+                if (assetTargt.Value._exportType != AssetBundleExportType.Asset)
+                {
+                    string bundleName = assetTargt.Value._bundleName;
+                    if (!bundleMap.ContainsKey(bundleName))
+                    {
+                        bundleMap.Add(bundleName, new List<string>());
+                    }
+
+                    bundleMap[bundleName].Add(assetTargt.Key);
+                }
+            }
+
+            return bundleMap;
+        }
+
+        private static void MarkSharedAssets(AssetTarget target)
+        {
+            if (target._marked) return;
+            foreach (var child in target._children)
+            {
+                MarkSharedAssets(allAssetTargts[child]);
+            }
+
+            var hashSet = new HashSet<AssetTarget>();
+            GetRoot(target, hashSet);
+            var belongtos = new HashSet<string>();
+            foreach (var root in hashSet)
+            {
+                belongtos.Add(root._bundleName);
+            }
+
+            if (belongtos.Count > 1)
+            {
+                target._exportType = AssetBundleExportType.Shared;
+            }
+
+            target._marked = true;
         }
 
         private static void GetRoot(AssetTarget target, HashSet<AssetTarget> rootSet)
@@ -65,13 +112,15 @@ namespace Plugins.XAsset.Editor.AutoBundle
                     rootSet.Add(target);
                     break;
                 default:
-                    foreach (AssetTarget item in _dependChildrenSet)
+                    foreach (var child in target._children)
                     {
-                        item.GetRoot(rootSet);
+                        GetRoot(allAssetTargts[child], rootSet);
                     }
+
                     break;
             }
         }
+
         public static string GetBundleName(DirectoryInfo bundleDir, FileInfo file, PackMode fPackMode, string parttern)
         {
             switch (fPackMode)

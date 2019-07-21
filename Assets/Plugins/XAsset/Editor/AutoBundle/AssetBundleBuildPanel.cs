@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System.Collections.Generic;
+using System.IO;
 using UnityEditor;
 using UnityEditorInternal;
 using UnityEngine;
@@ -21,6 +22,7 @@ namespace Plugins.XAsset.Editor.AutoBundle
                 Debug.LogError("Exit play mode before build AssetBundle!");
                 return;
             }
+
             AssetBundleBuildConfig config = LoadAssetAtPath<AssetBundleBuildConfig>(savePath);
 
             if (config == null)
@@ -38,11 +40,12 @@ namespace Plugins.XAsset.Editor.AutoBundle
                 if (f.valid)
                     AddRootTargets(new DirectoryInfo(f.path), f.packMode, f.filter);
             }
+
 //            builder.Export();
 //            builder.End();
         }
 
-        private static void  AddRootTargets(DirectoryInfo bundleDir, PackMode fPackMode, string parttern = null,
+        private static void AddRootTargets(DirectoryInfo bundleDir, PackMode fPackMode, string parttern = null,
             SearchOption searchOption = SearchOption.AllDirectories)
         {
             if (string.IsNullOrEmpty(parttern))
@@ -62,18 +65,26 @@ namespace Plugins.XAsset.Editor.AutoBundle
                 new AssetTarget(assetPath, bundleName, exportType);
             }
 
-            AssetTarget.ProcessRelations();
+            Dictionary<string, List<string>> bundleMap = AssetTarget.ProcessRelations();
+            foreach (var keyValuePair in bundleMap)
+            {
+                Debug.Log("bundle: " + keyValuePair.Key);
+                foreach (var s in keyValuePair.Value)
+                {
+                    Debug.Log("\tasset: " + s);
+                }
+            }
         }
 
 
-		static T LoadAssetAtPath<T>(string path) where T:Object
-		{
+        static T LoadAssetAtPath<T>(string path) where T : Object
+        {
 #if UNITY_5 || UNITY_2017_1_OR_NEWER
-			return AssetDatabase.LoadAssetAtPath<T>(path);
+            return AssetDatabase.LoadAssetAtPath<T>(path);
 #else
 			return (T)AssetDatabase.LoadAssetAtPath(path, typeof(T));
 #endif
-		}
+        }
 
         const string savePath = "Assets/bundle_rule.asset";
 
@@ -83,7 +94,6 @@ namespace Plugins.XAsset.Editor.AutoBundle
 
         AssetBundleBuildPanel()
         {
-
         }
 
         void OnListElementGUI(Rect rect, int index, bool isactive, bool isfocused)
@@ -112,6 +122,7 @@ namespace Plugins.XAsset.Editor.AutoBundle
                 if (path != null)
                     filter.path = path;
             }
+
             r.xMin = r.xMax + GAP;
             r.width = 80;
             filter.packMode = (PackMode) EditorGUI.EnumPopup(r, filter.packMode);
@@ -136,6 +147,7 @@ namespace Plugins.XAsset.Editor.AutoBundle
                     ShowNotification(new GUIContent("不能在Assets目录之外!"));
                 }
             }
+
             return null;
         }
 
@@ -194,10 +206,12 @@ namespace Plugins.XAsset.Editor.AutoBundle
                 {
                     Add();
                 }
+
                 if (GUILayout.Button("Save", EditorStyles.toolbarButton))
                 {
                     Save();
                 }
+
                 GUILayout.FlexibleSpace();
                 if (GUILayout.Button("Build", EditorStyles.toolbarButton))
                 {
@@ -212,7 +226,8 @@ namespace Plugins.XAsset.Editor.AutoBundle
                 //format
                 GUILayout.BeginHorizontal();
                 {
-                    _config.graphMode = (AssetBundleBuildConfig.GraphMode)EditorGUILayout.EnumPopup("Graph Mode", _config.graphMode);
+                    _config.graphMode =
+                        (AssetBundleBuildConfig.GraphMode) EditorGUILayout.EnumPopup("Graph Mode", _config.graphMode);
                 }
                 GUILayout.EndHorizontal();
 
