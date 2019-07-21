@@ -15,7 +15,7 @@ namespace Plugins.XAsset.Editor.AutoBundle
             GetWindow<AssetBundleBuildPanel>("ABSystem", true);
         }
 
-        [MenuItem("ABSystem/Builde AssetBundles")]
+        [MenuItem("ABSystem/Build AssetBundles")]
         static void BuildAssetBundles()
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode)
@@ -26,33 +26,39 @@ namespace Plugins.XAsset.Editor.AutoBundle
 
             AssetBundleBuildConfig config = LoadAssetAtPath<AssetBundleBuildConfig>(savePath);
 
-            if (config == null)
-                return;
+            if (config == null) return;
 
-//			ABBuilder builder = new AssetBundleBuilder5x(new AssetBundlePathResolver());
-//
-//            builder.SetDataWriter(config.depInfoFileFormat == AssetBundleBuildConfig.Format.Text ? new AssetBundleDataWriter() : new AssetBundleDataBinaryWriter());
-//
-//            builder.Begin();
-
-            for (int i = 0; i < config.filters.Count; i++)
+            foreach (var f in config.filters)
             {
-                AssetBundleFilter f = config.filters[i];
-                if (f.valid)
-                    AddRootTargets(new DirectoryInfo(f.path), f.packMode, f.filter);
+                if (f.valid) AddRootTargets(new DirectoryInfo(f.path), f.packMode, f.filter);
             }
 
-//            builder.Export();
-//            builder.End();
+
+            AssetsManifest assetsManifest = BuildScript.GetManifest();
+            assetsManifest.dirs = new string[0];
+            assetsManifest.assets = new AssetData[0];
+            assetsManifest.bundles = new string[0];
+            assetsManifest.activeVariants= new string[0];
+
+            var bundleMap = AssetTarget.ProcessRelations();
+            foreach (var keyValuePair in bundleMap)
+            {
+                Debug.Log("bundle: " + keyValuePair.Key);
+                foreach (var s in keyValuePair.Value)
+                {
+                    Debug.Log("\tasset: " + s);
+                    BuildScript.SetAssetBundleNameAndVariant(s, keyValuePair.Key, null);
+                }
+            }
         }
 
-        private static void AddRootTargets(DirectoryInfo bundleDir, PackMode fPackMode, string parttern = null,
+        private static void AddRootTargets(DirectoryInfo bundleDir, PackMode fPackMode, string pattern = null,
             SearchOption searchOption = SearchOption.AllDirectories)
         {
-            if (string.IsNullOrEmpty(parttern))
-                parttern = "*.*";
+            if (string.IsNullOrEmpty(pattern))
+                pattern = "*.*";
 
-            FileInfo[] prefabs = bundleDir.GetFiles(parttern, searchOption);
+            FileInfo[] prefabs = bundleDir.GetFiles(pattern, searchOption);
             AssetTarget.AllAssetTargts.Clear();
             foreach (FileInfo file in prefabs)
             {
@@ -60,20 +66,9 @@ namespace Plugins.XAsset.Editor.AutoBundle
                     continue;
 
                 var assetPath = "Assets" + file.FullName.Replace(Application.dataPath, "");
-                var bundleName = AssetTarget.GetBundleName(bundleDir, file, fPackMode, parttern);
+                var bundleName = AssetTarget.GetBundleName(bundleDir, file, fPackMode, pattern);
                 var exportType = AssetBundleExportType.Root;
-
                 new AssetTarget(assetPath, bundleName, exportType);
-            }
-
-            Dictionary<string, List<string>> bundleMap = AssetTarget.ProcessRelations();
-            foreach (var keyValuePair in bundleMap)
-            {
-                Debug.Log("bundle: " + keyValuePair.Key);
-                foreach (var s in keyValuePair.Value)
-                {
-                    Debug.Log("\tasset: " + s);
-                }
             }
         }
 

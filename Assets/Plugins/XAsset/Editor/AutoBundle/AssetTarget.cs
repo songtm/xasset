@@ -1,5 +1,7 @@
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using Plugins.XAsset.Editor;
 using Plugins.XAsset.Editor.AutoBundle;
 using UnityEditor;
 using UnityEngine;
@@ -25,7 +27,11 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
 
         public AssetTarget(string assetPath, string bundleName, AssetBundleExportType exportType)
         {
-            _bundleName = bundleName ?? assetPath;
+            _bundleName = AssetsMenuItem.TrimedAssetBundleName(bundleName ?? assetPath);
+            var dir = Path.GetDirectoryName(_bundleName);
+            var name = Path.GetFileNameWithoutExtension(_bundleName);
+            _bundleName = Path.Combine(dir, name).Replace("\\", "/").ToLower();
+
             _exportType = exportType;
             if (!AllAssetTargts.ContainsKey(assetPath))
             {
@@ -126,31 +132,27 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
             switch (fPackMode)
             {
                 case PackMode.Indepent:
-                    var path = file.FullName.Replace(Application.dataPath, "");
+                    var pre = Directory.GetParent(Application.dataPath).FullName + Path.DirectorySeparatorChar;
+                    var path = file.FullName.Replace(pre, "");
                     return path;
                 case PackMode.AllInOne:
-//                    var str1 = "__" + bundleDir.ToString() + pattern + fPackMode;
-//                    abName =  HashUtil.Get(str1)+".ab";
-                    return bundleDir + "/" + pattern + "(" + fPackMode + ")";
+                    return bundleDir + "_t" + (int)fPackMode;
                 case PackMode.PerAnyDir:
                     var d = file.Directory;
                     // ReSharper disable once PossibleNullReferenceException
                     var str2 = bundleDir + d.FullName.Replace(bundleDir.FullName, "");
-//                    abName = HashUtil.Get("_" + str2) + ".ab";
-                    return str2 + "/" + pattern + "(" + fPackMode + ")";
+                    return str2 + "_t" + (int)fPackMode;
                 case PackMode.PerSubDir:
                     var dir = file.Directory;
                     var subDir = "";
                     // ReSharper disable once PossibleNullReferenceException
                     while (dir.FullName != bundleDir.FullName)
                     {
-                        subDir = dir.Name + "/";
+                        subDir = dir.Name;
                         dir = dir.Parent;
                     }
 
-//                    var str = "____" + bundleDir.ToString() + subDir + pattern + fPackMode;
-//                    abName = HashUtil.Get(str)+".ab";
-                    return bundleDir + "/" + subDir + pattern + "(" + fPackMode + ")";
+                    return bundleDir + Path.DirectorySeparatorChar.ToString() + subDir + "_t" + (int)fPackMode;
                 default:
                     return null;
             }
