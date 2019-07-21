@@ -107,7 +107,7 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
             foreach (KeyValuePair<string, AssetTarget> assetTarget in AllAssetTargts)
             {
                 var bundleName = assetTarget.Value._bundleName;
-                if (nodes.Add(bundleName))
+                if (assetTarget.Value._exportType != AssetBundleExportType.Asset && nodes.Add(bundleName))
                 {
 //                    var deps = manifest.GetAllDependencies(assetTarget.abFileName);
                     builder.Append("\t");
@@ -154,7 +154,7 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
 
                     if (needShow)
                     {
-                        if (!mergeShow && showDepResName && assetTarget._bundleName.Contains("*"))
+                        if (!mergeShow && showDepResName && assetTarget._bundleName.Contains("_t"))
                             edge += string.Format(" [label=\"{0}({1})\"]", Path.GetFileName(assetTarget._assetPath),
                                 Path.GetFileName(depTarget._assetPath));
                         builder.Append("\t");
