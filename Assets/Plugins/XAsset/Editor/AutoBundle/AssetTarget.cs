@@ -1,10 +1,10 @@
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
+using Plugins.XAsset.Editor.AutoBundle;
 using UnityEditor;
 using UnityEngine;
 
-namespace Plugins.XAsset.Editor.AutoBundle
+namespace XAsset.Plugins.XAsset.Editor.AutoBundle
 {
     public enum AssetBundleExportType
     {
@@ -15,31 +15,31 @@ namespace Plugins.XAsset.Editor.AutoBundle
 
     public class AssetTarget
     {
-        private string _assetPath;
-        private string _bundleName;
+        private readonly string _bundleName;
         private readonly List<string> _parents = new List<string>();
         private readonly List<string> _children = new List<string>();
         private AssetBundleExportType _exportType;
-        public static readonly Dictionary<string, AssetTarget> allAssetTargts = new Dictionary<string, AssetTarget>();
+        public static readonly Dictionary<string, AssetTarget> AllAssetTargts = new Dictionary<string, AssetTarget>();
 
-        private bool _marked = false;
+        private bool _marked;
 
         public AssetTarget(string assetPath, string bundleName, AssetBundleExportType exportType)
         {
-            _assetPath = assetPath;
             _bundleName = bundleName ?? assetPath;
             _exportType = exportType;
-            if (!allAssetTargts.ContainsKey(assetPath))
+            if (!AllAssetTargts.ContainsKey(assetPath))
             {
                 Debug.Log("add:" + assetPath);
-                allAssetTargts.Add(assetPath, this);
+                AllAssetTargts.Add(assetPath, this);
                 string[] dependencies = AssetDatabase.GetDependencies(assetPath, false);
                 foreach (var dep in dependencies)
                 {
                     if (dep.EndsWith(".cs") || dep.EndsWith(".prefab")) continue;
+                    // ReSharper disable once AssignNullToNotNullAttribute
                     if (!File.Exists(Path.Combine(Path.GetDirectoryName(Application.dataPath), dep))) continue;
                     Debug.Log("    dep:" + dep);
                     _parents.Add(dep);
+                    // ReSharper disable once ObjectCreationAsStatement
                     new AssetTarget(dep, null, AssetBundleExportType.Asset);
                 }
             }
@@ -47,22 +47,22 @@ namespace Plugins.XAsset.Editor.AutoBundle
 
         public static Dictionary<string, List<string>> ProcessRelations()
         {
-            foreach (var assetTarget in allAssetTargts)
+            foreach (var assetTarget in AllAssetTargts)
             {
                 foreach (var parent in assetTarget.Value._parents)
                 {
-                    allAssetTargts[parent]._children.Add(assetTarget.Key);
+                    AllAssetTargts[parent]._children.Add(assetTarget.Key);
                 }
             }
             //todo: output relation graph!
 
-            foreach (var target in allAssetTargts)
+            foreach (var target in AllAssetTargts)
             {
                 MarkSharedAssets(target.Value);
             }
 
             var bundleMap = new Dictionary<string, List<string>>();
-            foreach (var assetTargt in allAssetTargts)
+            foreach (var assetTargt in AllAssetTargts)
             {
                 if (assetTargt.Value._exportType != AssetBundleExportType.Asset)
                 {
@@ -84,7 +84,7 @@ namespace Plugins.XAsset.Editor.AutoBundle
             if (target._marked) return;
             foreach (var child in target._children)
             {
-                MarkSharedAssets(allAssetTargts[child]);
+                MarkSharedAssets(AllAssetTargts[child]);
             }
 
             var hashSet = new HashSet<AssetTarget>();
@@ -114,14 +114,14 @@ namespace Plugins.XAsset.Editor.AutoBundle
                 default:
                     foreach (var child in target._children)
                     {
-                        GetRoot(allAssetTargts[child], rootSet);
+                        GetRoot(AllAssetTargts[child], rootSet);
                     }
 
                     break;
             }
         }
 
-        public static string GetBundleName(DirectoryInfo bundleDir, FileInfo file, PackMode fPackMode, string parttern)
+        public static string GetBundleName(DirectoryInfo bundleDir, FileInfo file, PackMode fPackMode, string pattern)
         {
             switch (fPackMode)
             {
@@ -129,26 +129,28 @@ namespace Plugins.XAsset.Editor.AutoBundle
                     var path = file.FullName.Replace(Application.dataPath, "");
                     return path;
                 case PackMode.AllInOne:
-                    var str1 = "__" + bundleDir.ToString() + parttern + fPackMode;
+//                    var str1 = "__" + bundleDir.ToString() + pattern + fPackMode;
 //                    abName =  HashUtil.Get(str1)+".ab";
-                    return bundleDir.ToString() + "/" + parttern + "(" + fPackMode + ")";
+                    return bundleDir + "/" + pattern + "(" + fPackMode + ")";
                 case PackMode.PerAnyDir:
                     var d = file.Directory;
-                    var str2 = bundleDir.ToString() + d.FullName.Replace(bundleDir.FullName, "");
+                    // ReSharper disable once PossibleNullReferenceException
+                    var str2 = bundleDir + d.FullName.Replace(bundleDir.FullName, "");
 //                    abName = HashUtil.Get("_" + str2) + ".ab";
-                    return str2 + "/" + parttern + "(" + fPackMode + ")";
+                    return str2 + "/" + pattern + "(" + fPackMode + ")";
                 case PackMode.PerSubDir:
                     var dir = file.Directory;
                     var subDir = "";
+                    // ReSharper disable once PossibleNullReferenceException
                     while (dir.FullName != bundleDir.FullName)
                     {
                         subDir = dir.Name + "/";
                         dir = dir.Parent;
                     }
 
-                    var str = "____" + bundleDir.ToString() + subDir + parttern + fPackMode;
+//                    var str = "____" + bundleDir.ToString() + subDir + pattern + fPackMode;
 //                    abName = HashUtil.Get(str)+".ab";
-                    return bundleDir.ToString() + "/" + subDir + parttern + "(" + fPackMode + ")";
+                    return bundleDir + "/" + subDir + pattern + "(" + fPackMode + ")";
                 default:
                     return null;
             }

@@ -3,6 +3,7 @@ using System.IO;
 using UnityEditor;
 using UnityEditorInternal;
 using UnityEngine;
+using XAsset.Plugins.XAsset.Editor.AutoBundle;
 
 namespace Plugins.XAsset.Editor.AutoBundle
 {
@@ -52,7 +53,7 @@ namespace Plugins.XAsset.Editor.AutoBundle
                 parttern = "*.*";
 
             FileInfo[] prefabs = bundleDir.GetFiles(parttern, searchOption);
-            AssetTarget.allAssetTargts.Clear();
+            AssetTarget.AllAssetTargts.Clear();
             foreach (FileInfo file in prefabs)
             {
                 if (file.Extension.Contains("meta"))
