@@ -19,7 +19,7 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
 
     public class AssetTarget
     {
-        private readonly string _bundleName;
+        private string _bundleName;
         private readonly string _assetPath;
         private readonly List<string> _parents = new List<string>();
         private readonly List<string> _children = new List<string>();
@@ -36,7 +36,7 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
             var name = Path.GetFileNameWithoutExtension(_bundleName);
             _bundleName = Path.Combine(dir, name).Replace("\\", "/").ToLower();
             if (bundleName == null)
-                _bundleName += "_auto";//todo atlas可以这里判断是不是位于atlas目录,是就弄到atlas里面!
+                _bundleName += "_auto"; //todo atlas可以这里判断是不是位于atlas目录,是就弄到atlas里面!
             _exportType = exportType;
             if (!AllAssetTargts.ContainsKey(assetPath))
             {
@@ -53,6 +53,12 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
                     // ReSharper disable once ObjectCreationAsStatement
                     new AssetTarget(dep, null, AssetBundleExportType.Asset);
                 }
+            }
+            else if (bundleName != null) //防止前面的 filter 的依赖提前添加了后面的的 filter 结果
+            {
+                var t = AllAssetTargts[assetPath];
+                t._bundleName = _bundleName;
+                t._exportType = exportType;
             }
         }
 
@@ -112,7 +118,7 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
                 {
 //                    var deps = manifest.GetAllDependencies(assetTarget.abFileName);
                     builder.Append("\t");
-                    builder.Append('"' + bundleName  + '"');
+                    builder.Append('"' + bundleName + '"');
                     if (assetTarget.Value._exportType == AssetBundleExportType.Shared)
                         builder.Append(
                             " [color=\"red\", fontcolor=\"red\", shape=\"ellipse\", fillcolor=\"lightblue1\", style=\"filled\"]");
@@ -128,7 +134,8 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
                 }
             }
 
-            var assetBundleBuildConfig = AssetDatabase.LoadAssetAtPath<AssetBundleBuildConfig>(AssetBundleBuildPanel.savePath);
+            var assetBundleBuildConfig =
+                AssetDatabase.LoadAssetAtPath<AssetBundleBuildConfig>(AssetBundleBuildPanel.savePath);
 
             bool showDepResName = assetBundleBuildConfig.graphMode == AssetBundleBuildConfig.GraphMode.ShowLinkName;
             bool mergeShow =
@@ -142,10 +149,11 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
                 foreach (var depname in deps)
                 {
                     var depTarget = AllAssetTargts[depname];
-                    if (!bundleMap.ContainsKey(assetTarget._bundleName) || !bundleMap.ContainsKey(depTarget._bundleName))
+                    if (!bundleMap.ContainsKey(assetTarget._bundleName) ||
+                        !bundleMap.ContainsKey(depTarget._bundleName))
                         continue;
                     if (assetTarget._bundleName == depTarget._bundleName) continue;
-                    string edge = '"' + assetTarget._bundleName+ "\"->\"" + depTarget._bundleName+ '"';
+                    string edge = '"' + assetTarget._bundleName + "\"->\"" + depTarget._bundleName + '"';
                     bool needShow = true;
                     if (mergeShow)
                     {
