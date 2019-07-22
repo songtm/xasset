@@ -221,7 +221,9 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
                 case PackMode.Indepent:
                     var pre = Directory.GetParent(Application.dataPath).FullName + Path.DirectorySeparatorChar;
                     var path = file.FullName.Replace(pre, "");
-                    return path;
+                    var dirtmp = Path.GetDirectoryName(path);
+                    var name = Path.GetFileNameWithoutExtension(path);
+                    return Path.Combine(dirtmp, name) + "_t" + (int) fPackMode;
                 case PackMode.AllInOne:
                     return bundleDir + "_t" + (int) fPackMode;
                 case PackMode.PerAnyDir:
@@ -235,11 +237,11 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
                     // ReSharper disable once PossibleNullReferenceException
                     while (dir.FullName != bundleDir.FullName)
                     {
-                        subDir = dir.Name;
+                        subDir = Path.DirectorySeparatorChar + dir.Name;
                         dir = dir.Parent;
                     }
 
-                    return bundleDir + Path.DirectorySeparatorChar.ToString() + subDir + "_t" + (int) fPackMode;
+                    return bundleDir + subDir + "_t" + (int) fPackMode;
                 default:
                     return null;
             }
