@@ -22,4 +22,4 @@ MonoBehaviour:
   - valid: 1
     path: Assets/Demo/Sprites
     filter: '*.png'
-    packMode: 4
+    packMode: 5

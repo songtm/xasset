@@ -117,10 +117,27 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
             }
 
             SaveRelationMap(bundleMap);
-
+            ProcessSpriteAtlas(bundleMap);
             return bundleMap;
         }
 
+        private static void ProcessSpriteAtlas(Dictionary<string, List<string>> bundleMap)
+        {
+            foreach (var pair in bundleMap)
+            {
+                var bundleName = pair.Key;
+                var assetList = pair.Value;
+                if (bundleName.EndsWith("_t" + (int) PackMode.AtlasAuto) ||
+                    bundleName.EndsWith("_t" + (int) PackMode.AtlasManul))
+                {
+                    foreach (var assetpath in assetList)
+                    {
+                        //todo:
+                    }
+                }
+
+            }
+        }
         private static void SaveRelationMap(Dictionary<string, List<string>> bundleMap)
         {
             string header = @"digraph dep {
