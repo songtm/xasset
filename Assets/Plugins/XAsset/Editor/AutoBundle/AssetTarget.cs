@@ -120,7 +120,7 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
             ProcessSpriteAtlas(bundleMap);
             return bundleMap;
         }
-
+        //这里可以用新版的 sprite atlas 或者旧版的 sprite packer
         private static void ProcessSpriteAtlas(Dictionary<string, List<string>> bundleMap)
         {
             foreach (var pair in bundleMap)
