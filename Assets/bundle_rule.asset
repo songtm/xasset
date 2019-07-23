@@ -13,8 +13,13 @@ MonoBehaviour:
   m_Name: bundle_rule
   m_EditorClassIdentifier: 
   graphMode: 2
+  AtlasOutputDir: Assets/SpriteAtlases
   filters:
   - valid: 1
     path: Assets/Demo/Prefabs
     filter: '*.prefab'
     packMode: 0
+  - valid: 1
+    path: Assets/Demo/Sprites
+    filter: '*.png'
+    packMode: 4

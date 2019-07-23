@@ -14,6 +14,8 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
     {
         Root,
         Asset,
+        AtlasUsed,
+        AtlasUnused,
         Shared
     }
 
@@ -25,40 +27,56 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
         private readonly List<string> _children = new List<string>();
         private AssetBundleExportType _exportType;
         public static readonly Dictionary<string, AssetTarget> AllAssetTargts = new Dictionary<string, AssetTarget>();
+        public static readonly Dictionary<string, PackMode> AllAtlasDirs = new Dictionary<string, PackMode>();
 
         private bool _marked;
 
         public AssetTarget(string assetPath, string bundleName, AssetBundleExportType exportType)
         {
-            _assetPath = assetPath;
-            _bundleName = AssetsMenuItem.TrimedAssetBundleName(bundleName ?? assetPath);
-            var dir = Path.GetDirectoryName(_bundleName);
-            var name = Path.GetFileNameWithoutExtension(_bundleName);
-            _bundleName = Path.Combine(dir, name).Replace("\\", "/").ToLower();
-            if (bundleName == null)
-                _bundleName += "_auto"; //todo atlas可以这里判断是不是位于atlas目录,是就弄到atlas里面!
-            _exportType = exportType;
             if (!AllAssetTargts.ContainsKey(assetPath))
             {
+                _assetPath = assetPath;
+                _bundleName = AssetsMenuItem.TrimedAssetBundleName(bundleName ?? assetPath);
+                var dir = Path.GetDirectoryName(_bundleName);
+                var name = Path.GetFileNameWithoutExtension(_bundleName);
+                _bundleName = Path.Combine(dir, name).Replace("\\", "/").ToLower();
+                _exportType = exportType;
+
+                if (bundleName == null)
+                {
+                    _bundleName += "_auto"; //todo atlas可以这里判断是不是位于atlas目录,是就弄到atlas里面!
+                }
+
                 Debug.Log("add:" + assetPath);
                 AllAssetTargts.Add(assetPath, this);
-                string[] dependencies = AssetDatabase.GetDependencies(assetPath, false);
-                foreach (var dep in dependencies)
+                //dep
+                if (exportType != AssetBundleExportType.AtlasUsed && exportType != AssetBundleExportType.AtlasUsed) //atlas png 没有依赖!
                 {
-                    if (dep.EndsWith(".cs") || dep.EndsWith(".prefab")) continue;
-                    // ReSharper disable once AssignNullToNotNullAttribute
-                    if (!File.Exists(Path.Combine(Path.GetDirectoryName(Application.dataPath), dep))) continue;
-                    Debug.Log("    dep:" + dep);
-                    _parents.Add(dep);
-                    // ReSharper disable once ObjectCreationAsStatement
-                    new AssetTarget(dep, null, AssetBundleExportType.Asset);
+                    string[] dependencies = AssetDatabase.GetDependencies(assetPath, false);
+                    foreach (var dep in dependencies)
+                    {
+                        if (dep.EndsWith(".cs") || dep.EndsWith(".prefab") || dep.EndsWith(".spriteatlas")) continue;
+                        // ReSharper disable once AssignNullToNotNullAttribute
+                        if (!File.Exists(Path.Combine(Path.GetDirectoryName(Application.dataPath), dep))) continue;
+                        Debug.Log("    dep:" + dep);
+                        _parents.Add(dep);
+                        // ReSharper disable once ObjectCreationAsStatement
+                        new AssetTarget(dep, null, AssetBundleExportType.Asset);
+                    }
                 }
             }
-            else if (bundleName != null) //防止前面的 filter 的依赖提前添加了后面的的 filter 结果
+            else
             {
                 var t = AllAssetTargts[assetPath];
-                t._bundleName = _bundleName;
-                t._exportType = exportType;
+                if (bundleName != null) //防止前面的 filter 的依赖提前添加了后面的的 filter 结果
+                {
+                    t._bundleName = _bundleName;
+                    t._exportType = exportType;
+                }
+                else if (t._exportType == AssetBundleExportType.AtlasUnused)
+                {
+                    t._exportType = AssetBundleExportType.AtlasUsed;
+                }
             }
         }
 
@@ -81,7 +99,7 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
             var bundleMap = new Dictionary<string, List<string>>();
             foreach (var assetTargt in AllAssetTargts)
             {
-                if (assetTargt.Value._exportType != AssetBundleExportType.Asset)
+                if (assetTargt.Value._exportType != AssetBundleExportType.Asset && assetTargt.Value._exportType != AssetBundleExportType.AtlasUnused)
                 {
                     string bundleName = assetTargt.Value._bundleName;
                     if (!bundleMap.ContainsKey(bundleName))
@@ -90,6 +108,11 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
                     }
 
                     bundleMap[bundleName].Add(assetTargt.Key);
+                }
+
+                if (assetTargt.Value._exportType == AssetBundleExportType.AtlasUnused)
+                {
+                    Debug.Log(("---unused sprite asset: " + assetTargt.Key));
                 }
             }
 
@@ -234,6 +257,8 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
                     return Path.Combine(dirtmp, name) + "_t" + (int) fPackMode;
                 case PackMode.AllInOne:
                     return bundleDir + "_t" + (int) fPackMode;
+                case PackMode.AtlasAuto:
+                case PackMode.AtlasManul:
                 case PackMode.PerAnyDir:
                     var d = file.Directory;
                     // ReSharper disable once PossibleNullReferenceException

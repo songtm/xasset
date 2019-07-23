@@ -29,9 +29,23 @@ namespace Plugins.XAsset.Editor.AutoBundle
             if (config == null) return;
 
             AssetTarget.AllAssetTargts.Clear();
+            AssetTarget.AllAtlasDirs.Clear();
             foreach (var f in config.filters)
             {
-                if (f.valid) AddRootTargets(new DirectoryInfo(f.path), f.packMode, f.filter);
+                if (f.valid && (f.packMode == PackMode.AtlasAuto || f.packMode == PackMode.AtlasManul))
+                {
+                    AddRootTargets(new DirectoryInfo(f.path), f.packMode, "*.png", //todo
+                        f.packMode == PackMode.AtlasAuto
+                            ? AssetBundleExportType.AtlasUnused
+                            : AssetBundleExportType.AtlasUsed);
+                    AssetTarget.AllAtlasDirs.Add(f.path, f.packMode);
+                }
+            }
+
+            foreach (var f in config.filters)
+            {
+                if (f.valid && f.packMode != PackMode.AtlasAuto && f.packMode != PackMode.AtlasManul)
+                    AddRootTargets(new DirectoryInfo(f.path), f.packMode, f.filter, AssetBundleExportType.Root);
             }
 
 
@@ -39,7 +53,7 @@ namespace Plugins.XAsset.Editor.AutoBundle
             assetsManifest.dirs = new string[0];
             assetsManifest.assets = new AssetData[0];
             assetsManifest.bundles = new string[0];
-            assetsManifest.activeVariants= new string[0];
+            assetsManifest.activeVariants = new string[0];
 
             var bundleMap = AssetTarget.ProcessRelations();
             foreach (var keyValuePair in bundleMap)
@@ -53,7 +67,8 @@ namespace Plugins.XAsset.Editor.AutoBundle
             }
         }
 
-        private static void AddRootTargets(DirectoryInfo bundleDir, PackMode fPackMode, string pattern = null,
+        private static void AddRootTargets(DirectoryInfo bundleDir, PackMode fPackMode, string pattern,
+            AssetBundleExportType exportType,
             SearchOption searchOption = SearchOption.AllDirectories)
         {
             if (string.IsNullOrEmpty(pattern))
@@ -67,7 +82,6 @@ namespace Plugins.XAsset.Editor.AutoBundle
 
                 var assetPath = "Assets" + file.FullName.Replace(Application.dataPath, "");
                 var bundleName = AssetTarget.GetBundleName(bundleDir, file, fPackMode, pattern);
-                var exportType = AssetBundleExportType.Root;
                 new AssetTarget(assetPath, bundleName, exportType);
             }
         }
@@ -122,10 +136,12 @@ namespace Plugins.XAsset.Editor.AutoBundle
             r.xMin = r.xMax + GAP;
             r.width = 80;
             filter.packMode = (PackMode) EditorGUI.EnumPopup(r, filter.packMode);
-
-            r.xMin = r.xMax + GAP;
-            r.xMax = rect.xMax;
-            filter.filter = GUI.TextField(r, filter.filter);
+            if (filter.packMode != PackMode.AtlasAuto && filter.packMode != PackMode.AtlasManul)
+            {
+                r.xMin = r.xMax + GAP;
+                r.xMax = rect.xMax;
+                filter.filter = GUI.TextField(r, filter.filter);
+            }
         }
 
         string SelectFolder()

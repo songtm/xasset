@@ -14,7 +14,7 @@ namespace Plugins.XAsset.Editor.AutoBundle
 
         public GraphMode graphMode = GraphMode.ShowLinkName;
 
-
+        public string AtlasOutputDir = "Assets/SpriteAtlases";
         public List<AssetBundleFilter> filters = new List<AssetBundleFilter>();
     }
 
@@ -23,7 +23,9 @@ namespace Plugins.XAsset.Editor.AutoBundle
         Indepent,
         AllInOne,
         PerAnyDir,
-        PerSubDir
+        PerSubDir,
+        AtlasAuto,
+        AtlasManul
     }
     [System.Serializable]
     public class AssetBundleFilter
