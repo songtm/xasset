@@ -6,7 +6,10 @@ using System.Text;
 using Plugins.XAsset.Editor;
 using Plugins.XAsset.Editor.AutoBundle;
 using UnityEditor;
+using UnityEditor.U2D;
 using UnityEngine;
+using UnityEngine.U2D;
+using Object = UnityEngine.Object;
 
 namespace XAsset.Plugins.XAsset.Editor.AutoBundle
 {
@@ -21,6 +24,7 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
 
     public class AssetTarget
     {
+        public static bool NewSpriteAtlasSystem = true;
         private string _bundleName;
         private readonly string _assetPath;
         private readonly List<string> _parents = new List<string>();
@@ -50,7 +54,8 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
                 Debug.Log("add:" + assetPath);
                 AllAssetTargts.Add(assetPath, this);
                 //dep
-                if (exportType != AssetBundleExportType.AtlasUsed && exportType != AssetBundleExportType.AtlasUsed) //atlas png 没有依赖!
+                if (exportType != AssetBundleExportType.AtlasUsed && exportType != AssetBundleExportType.AtlasUsed
+                ) //atlas png 没有依赖!
                 {
                     string[] dependencies = AssetDatabase.GetDependencies(assetPath, false);
                     foreach (var dep in dependencies)
@@ -80,7 +85,7 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
             }
         }
 
-        public static Dictionary<string, List<string>> ProcessRelations()
+        public static Dictionary<string, List<string>> ProcessRelations(string configAtlasOutputDir)
         {
             foreach (var assetTarget in AllAssetTargts)
             {
@@ -99,8 +104,10 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
             var bundleMap = new Dictionary<string, List<string>>();
             foreach (var assetTargt in AllAssetTargts)
             {
-                if (assetTargt.Value._exportType != AssetBundleExportType.Asset && assetTargt.Value._exportType != AssetBundleExportType.AtlasUnused)
+                if (assetTargt.Value._exportType != AssetBundleExportType.Asset)
                 {
+                    if (NewSpriteAtlasSystem && assetTargt.Value._exportType == AssetBundleExportType.AtlasUnused)
+                        continue;
                     string bundleName = assetTargt.Value._bundleName;
                     if (!bundleMap.ContainsKey(bundleName))
                     {
@@ -117,12 +124,27 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
             }
 
             SaveRelationMap(bundleMap);
-            ProcessSpriteAtlas(bundleMap);
+
+            if (NewSpriteAtlasSystem)
+                ProcessSpriteAtlas(bundleMap, configAtlasOutputDir);
+            else
+            {
+                Debug.LogError("todo"); //todo
+            }
+
             return bundleMap;
         }
+
         //这里可以用新版的 sprite atlas 或者旧版的 sprite packer
-        private static void ProcessSpriteAtlas(Dictionary<string, List<string>> bundleMap)
+        private static void ProcessSpriteAtlas(Dictionary<string, List<string>> bundleMap, string configAtlasOutputDir)
         {
+            if (!Directory.Exists(configAtlasOutputDir))
+            {
+                Directory.CreateDirectory(configAtlasOutputDir);
+            }
+
+            var validAtlasFiles = new HashSet<string>();
+
             foreach (var pair in bundleMap)
             {
                 var bundleName = pair.Key;
@@ -130,14 +152,65 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
                 if (bundleName.EndsWith("_t" + (int) PackMode.AtlasAuto) ||
                     bundleName.EndsWith("_t" + (int) PackMode.AtlasManul))
                 {
-                    foreach (var assetpath in assetList)
+                    var atlasTag = bundleName.Replace("/", "_");
+                    var atlasFileName = UpdatSpriteAtlasFile(configAtlasOutputDir, atlasTag, assetList);
+                    validAtlasFiles.Add(atlasFileName);
+                }
+            }
+
+            var atlasDir = new DirectoryInfo(configAtlasOutputDir);
+            FileInfo[] atlasFileInfos = atlasDir.GetFiles("*.spriteatlas", SearchOption.AllDirectories);
+            foreach (FileInfo file in atlasFileInfos)
+            {
+                if (!validAtlasFiles.Contains(file.Name))//todo: win下路径检查
+                {
+                    file.Delete();
+                }
+            }
+
+            AssetDatabase.SaveAssets();
+        }
+
+        private static string UpdatSpriteAtlasFile(string configAtlasOutputDir, string atlasName, List<string> assetList)
+        {
+            var atlasAssetPath = Path.Combine(configAtlasOutputDir, atlasName) + ".spriteatlas";
+            if (!File.Exists(atlasAssetPath))
+            {
+                var atlas = new SpriteAtlas();
+                AssetDatabase.CreateAsset(atlas, atlasAssetPath);
+                var packingSettings = atlas.GetPackingSettings();
+                packingSettings.enableRotation = false; //默认是不能rotation, 创建后可以手动修改!
+                atlas.SetPackingSettings(packingSettings);
+            }
+
+            var spriteAtlas = AssetDatabase.LoadAssetAtPath<SpriteAtlas>(atlasAssetPath);
+            spriteAtlas.SetIncludeInBuild(false);
+            var packables = spriteAtlas.GetPackables();
+            foreach (var t in packables)
+            {
+                if (t != null)
+                {
+                    var assetPath = AssetDatabase.GetAssetPath(t);
+                    if (!assetList.Contains(assetPath)) //todo:window下面路径是不是对的?
                     {
-                        //todo:
+                        spriteAtlas.Remove(new[] {t});
+                    }
+                    else
+                    {
+                        assetList.Remove(assetPath);
                     }
                 }
-
             }
+
+            foreach (var s in assetList)
+            {
+                var assetAtPath = AssetDatabase.LoadAssetAtPath<Object>(s);
+                spriteAtlas.Add(new[] {assetAtPath});
+            }
+
+            return atlasName+".spriteatlas";
         }
+
         private static void SaveRelationMap(Dictionary<string, List<string>> bundleMap)
         {
             string header = @"digraph dep {

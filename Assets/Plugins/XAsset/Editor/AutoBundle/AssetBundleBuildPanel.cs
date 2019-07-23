@@ -55,7 +55,7 @@ namespace Plugins.XAsset.Editor.AutoBundle
             assetsManifest.bundles = new string[0];
             assetsManifest.activeVariants = new string[0];
 
-            var bundleMap = AssetTarget.ProcessRelations();
+            var bundleMap = AssetTarget.ProcessRelations(config.AtlasOutputDir);
             foreach (var keyValuePair in bundleMap)
             {
                 Debug.Log("bundle: " + keyValuePair.Key);
@@ -65,6 +65,8 @@ namespace Plugins.XAsset.Editor.AutoBundle
                     BuildScript.SetAssetBundleNameAndVariant(s, keyValuePair.Key, null);
                 }
             }
+
+            AssetDatabase.Refresh();
         }
 
         private static void AddRootTargets(DirectoryInfo bundleDir, PackMode fPackMode, string pattern,
@@ -240,6 +242,7 @@ namespace Plugins.XAsset.Editor.AutoBundle
                 {
                     _config.graphMode =
                         (AssetBundleBuildConfig.GraphMode) EditorGUILayout.EnumPopup("Graph Mode", _config.graphMode);
+                    _config.AtlasOutputDir = EditorGUILayout.TextField("AtlasOutputDir", _config.AtlasOutputDir);
                 }
                 GUILayout.EndHorizontal();
 
