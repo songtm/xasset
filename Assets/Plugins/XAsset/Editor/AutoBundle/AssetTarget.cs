@@ -143,7 +143,7 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
                 Directory.CreateDirectory(configAtlasOutputDir);
             }
 
-            var validAtlasFiles = new HashSet<string>();
+            var validAtlasFiles = new Dictionary<string, string>(); //bundlename, atlasfilename
 
             foreach (var pair in bundleMap)
             {
@@ -154,7 +154,7 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
                 {
                     var atlasTag = bundleName.Replace("/", "_");
                     var atlasFileName = UpdatSpriteAtlasFile(configAtlasOutputDir, atlasTag, assetList);
-                    validAtlasFiles.Add(atlasFileName);
+                    validAtlasFiles.Add(bundleName, atlasFileName);
                 }
             }
 
@@ -162,12 +162,18 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
             FileInfo[] atlasFileInfos = atlasDir.GetFiles("*.spriteatlas", SearchOption.AllDirectories);
             foreach (FileInfo file in atlasFileInfos)
             {
-                if (!validAtlasFiles.Contains(file.Name))//todo: win下路径检查
+                if (!validAtlasFiles.ContainsValue(file.Name))//todo: win下路径检查
                 {
                     file.Delete();
                 }
             }
-
+            foreach (var keyValuePair in validAtlasFiles)
+            {
+                var bundleName = keyValuePair.Key;
+                var alasFileName = keyValuePair.Value;
+                bundleMap[bundleName].Clear();
+                bundleMap[bundleName].Add(Path.Combine(configAtlasOutputDir, alasFileName));
+            }
             AssetDatabase.SaveAssets();
         }
 
