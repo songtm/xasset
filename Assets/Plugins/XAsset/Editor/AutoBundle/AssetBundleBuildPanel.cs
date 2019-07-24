@@ -43,8 +43,18 @@ namespace Plugins.XAsset.Editor.AutoBundle
 
             if (config == null) return;
 
+            AssetTarget.IgnoreDepFindExt.Clear();
+            var spriteExts = config.SpriteExtension.Split(';');
+            foreach (var spriteExt in spriteExts)
+            {
+                AssetTarget.IgnoreDepFindExt.Add(spriteExt);
+            }
+            AssetTarget.IgnoreDepFindExt.Add(".mp3");
+            AssetTarget.IgnoreDepFindExt.Add(".mp4");
+
             AssetTarget.AllAssetTargts.Clear();
             AssetTarget.AllAtlasDirs.Clear();
+            Debug.Log("111----- "+Time.realtimeSinceStartup);
             foreach (var f in config.filters)
             {
                 if (f.valid && (f.packMode == PackMode.AtlasAuto || f.packMode == PackMode.AtlasManul))
@@ -56,34 +66,82 @@ namespace Plugins.XAsset.Editor.AutoBundle
                     AssetTarget.AllAtlasDirs.Add(f.path, f.packMode);
                 }
             }
-
+            Debug.Log("222----- "+Time.realtimeSinceStartup);
             foreach (var f in config.filters)
             {
                 if (f.valid && f.packMode != PackMode.AtlasAuto && f.packMode != PackMode.AtlasManul)
                     AddRootTargets(new DirectoryInfo(f.path), f.packMode, f.filter, AssetBundleExportType.Root);
             }
+            Debug.Log("333----- "+Time.realtimeSinceStartup);
+
+            var bundleMap = AssetTarget.ProcessRelations(config.AtlasOutputDir);
+
+            GenXssetManifest(bundleMap);
 
 
+
+            AssetDatabase.Refresh();
+            Debug.Log("---end"+Time.realtimeSinceStartup);
+        }
+
+        private static void GenXssetManifest(Dictionary<string, List<string>> bundleMap)
+        {
             AssetsManifest assetsManifest = BuildScript.GetManifest();
             assetsManifest.dirs = new string[0];
             assetsManifest.assets = new AssetData[0];
             assetsManifest.bundles = new string[0];
             assetsManifest.activeVariants = new string[0];
 
-            var bundleMap = AssetTarget.ProcessRelations(config.AtlasOutputDir);
+            var bundlenames = bundleMap.Keys.ToArray();
+            assetsManifest.bundles = bundlenames;
+            var bundleNameDic = new Dictionary<string, int>();
+            for (var i = 0; i < bundlenames.Length; i++)
+            {
+                bundleNameDic[bundlenames[i]] = i;
+            }
+
+            var dirset = new HashSet<string>();
             foreach (var keyValuePair in bundleMap)
             {
-                Debug.Log("bundle: " + keyValuePair.Key);
                 foreach (var s in keyValuePair.Value)
                 {
-                    Debug.Log("\tasset: " + s);
-                    BuildScript.SetAssetBundleNameAndVariant(s, keyValuePair.Key, null);
+                    var dir = Path.GetDirectoryName(s).Replace("\\", "/");
+                    dirset.Add(dir);
                 }
             }
 
-            AssetDatabase.Refresh();
-        }
+            var dirs = dirset.ToArray();
+            var dirDic = new Dictionary<string, int>();
+            for (var i = 0; i < dirs.Length; i++)
+            {
+                dirDic[dirs[i]] = i;
+            }
+            assetsManifest.dirs = dirs;
 
+            var  assetDatas = new List<AssetData>(1000);
+            foreach (var keyValuePair in bundleMap)
+            {
+                var bundleName = keyValuePair.Key;
+                foreach (var assetPath in keyValuePair.Value)
+                {
+                    var dir = Path.GetDirectoryName(assetPath).Replace("\\", "/");
+                    var data = new AssetData
+                    {
+                        bundle = bundleNameDic[bundleName],
+                        dir = dirDic[dir],
+                        name = Path.GetFileName(assetPath),
+                        variant = -1
+                    };
+                    assetDatas.Add(data);
+                }
+            }
+
+            assetsManifest.assets = assetDatas.ToArray();
+            EditorUtility.SetDirty(assetsManifest);
+            AssetDatabase.SaveAssets();
+
+
+        }
         private static void AddRootTargets(DirectoryInfo bundleDir, PackMode fPackMode, string pattern,
             AssetBundleExportType exportType,
             SearchOption searchOption = SearchOption.AllDirectories)

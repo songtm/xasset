@@ -24,6 +24,7 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
 
     public class AssetTarget
     {
+        public static HashSet<string> IgnoreDepFindExt = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         public static bool NewSpriteAtlasSystem = true;
         private string _bundleName;
         private readonly string _assetPath;
@@ -51,11 +52,13 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
 
             if (!AllAssetTargts.ContainsKey(assetPath))
             {
-                Debug.Log("add:" + assetPath);
+//                Debug.Log("add:" + assetPath);
                 AllAssetTargts.Add(assetPath, this);
                 //dep
-                if (exportType != AssetBundleExportType.AtlasUsed && exportType != AssetBundleExportType.AtlasUsed
-                ) //atlas png 没有依赖!
+                var ingore = IgnoreDepFindExt.Contains(Path.GetExtension(assetPath));
+
+                if (!ingore && exportType != AssetBundleExportType.AtlasUsed &&
+                    exportType != AssetBundleExportType.AtlasUsed) //atlas png 没有依赖!
                 {
                     string[] dependencies = AssetDatabase.GetDependencies(assetPath, false);
                     foreach (var dep in dependencies)
@@ -63,7 +66,7 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
                         if (dep.EndsWith(".cs") || dep.EndsWith(".prefab") || dep.EndsWith(".spriteatlas")) continue;
                         // ReSharper disable once AssignNullToNotNullAttribute
                         if (!File.Exists(Path.Combine(Path.GetDirectoryName(Application.dataPath), dep))) continue;
-                        Debug.Log("    dep:" + dep);
+//                        Debug.Log("    dep:" + dep);
                         _parents.Add(dep);
                         // ReSharper disable once ObjectCreationAsStatement
                         new AssetTarget(dep, null, AssetBundleExportType.Asset);
@@ -119,7 +122,7 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
 
                 if (assetTargt.Value._exportType == AssetBundleExportType.AtlasUnused)
                 {
-                    Debug.Log(("---unused sprite asset: " + assetTargt.Key));
+//                    Debug.Log(("---unused sprite asset: " + assetTargt.Key));
                 }
             }
 
