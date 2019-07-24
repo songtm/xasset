@@ -37,20 +37,20 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
 
         public AssetTarget(string assetPath, string bundleName, AssetBundleExportType exportType)
         {
+            _assetPath = assetPath;
+            _bundleName = AssetsMenuItem.TrimedAssetBundleName(bundleName ?? assetPath);
+            var dir = Path.GetDirectoryName(_bundleName);
+            var name = Path.GetFileNameWithoutExtension(_bundleName);
+            _bundleName = Path.Combine(dir, name).Replace("\\", "/").ToLower();
+            _exportType = exportType;
+
+            if (bundleName == null)
+            {
+                _bundleName += "_auto"; //todo atlas可以这里判断是不是位于atlas目录,是就弄到atlas里面!
+            }
+
             if (!AllAssetTargts.ContainsKey(assetPath))
             {
-                _assetPath = assetPath;
-                _bundleName = AssetsMenuItem.TrimedAssetBundleName(bundleName ?? assetPath);
-                var dir = Path.GetDirectoryName(_bundleName);
-                var name = Path.GetFileNameWithoutExtension(_bundleName);
-                _bundleName = Path.Combine(dir, name).Replace("\\", "/").ToLower();
-                _exportType = exportType;
-
-                if (bundleName == null)
-                {
-                    _bundleName += "_auto"; //todo atlas可以这里判断是不是位于atlas目录,是就弄到atlas里面!
-                }
-
                 Debug.Log("add:" + assetPath);
                 AllAssetTargts.Add(assetPath, this);
                 //dep
