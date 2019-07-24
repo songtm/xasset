@@ -70,10 +70,10 @@ namespace Plugins.XAsset.Editor.AutoBundle
             }
             foreach (var f in config.filters)
             {
-                if (f.valid && (f.packMode == PackMode.AtlasAuto || f.packMode == PackMode.AtlasManul))
+                if (f.valid && (f.packMode == PackMode.EachDirAtlasAuto || f.packMode == PackMode.EachDirAtlasManul))
                 {
                     AddRootTargets(new DirectoryInfo(f.path), f.packMode, config.SpriteExtension,
-                        f.packMode == PackMode.AtlasAuto
+                        f.packMode == PackMode.EachDirAtlasAuto
                             ? AssetBundleExportType.AtlasUnused
                             : AssetBundleExportType.AtlasUsed);
                 }
@@ -81,8 +81,8 @@ namespace Plugins.XAsset.Editor.AutoBundle
             Debug.Log("222----- "+Time.realtimeSinceStartup);
             foreach (var f in config.filters)
             {
-                if (f.valid && f.packMode != PackMode.AtlasAuto
-                            && f.packMode != PackMode.AtlasManul && f.packMode != PackMode.EachDirAuto)
+                if (f.valid && f.packMode != PackMode.EachDirAtlasAuto
+                            && f.packMode != PackMode.EachDirAtlasManul && f.packMode != PackMode.EachDirAuto)
                     AddRootTargets(new DirectoryInfo(f.path), f.packMode, f.filter, AssetBundleExportType.Root);
             }
             Debug.Log("333----- "+Time.realtimeSinceStartup);
@@ -221,9 +221,9 @@ namespace Plugins.XAsset.Editor.AutoBundle
             }
 
             r.xMin = r.xMax + GAP;
-            r.width = 80;
+            r.width = 120;
             filter.packMode = (PackMode) EditorGUI.EnumPopup(r, filter.packMode);
-            if (filter.packMode != PackMode.AtlasAuto && filter.packMode != PackMode.AtlasManul
+            if (filter.packMode != PackMode.EachDirAtlasAuto && filter.packMode != PackMode.EachDirAtlasManul
                 && filter.packMode != PackMode.EachDirAuto)
             {
                 r.xMin = r.xMax + GAP;

@@ -167,8 +167,8 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
             {
                 var bundleName = pair.Key;
                 var assetList = pair.Value;
-                if (bundleName.EndsWith("_t" + (int) PackMode.AtlasAuto) ||
-                    bundleName.EndsWith("_t" + (int) PackMode.AtlasManul))
+                if (bundleName.EndsWith("_t" + (int) PackMode.EachDirAtlasAuto) ||
+                    bundleName.EndsWith("_t" + (int) PackMode.EachDirAtlasManul))
                 {
                     var atlasTag = bundleName.Replace("/", "_");
                     var atlasFileName = UpdatSpriteAtlasFile(configAtlasOutputDir, atlasTag, assetList);
@@ -374,8 +374,8 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
                     return Path.Combine(dirtmp, name) + "_t" + (int) fPackMode;
                 case PackMode.AllInOne:
                     return bundleDir + "_t" + (int) fPackMode;
-                case PackMode.AtlasAuto:
-                case PackMode.AtlasManul:
+                case PackMode.EachDirAtlasAuto:
+                case PackMode.EachDirAtlasManul:
                 case PackMode.EachDirAuto:
                 case PackMode.EachDir:
                     var d = file.Directory;

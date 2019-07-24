@@ -25,8 +25,8 @@ namespace Plugins.XAsset.Editor.AutoBundle
         AllInOne,
         EachDir,
         SubDir,
-        AtlasAuto,
-        AtlasManul,
+        EachDirAtlasAuto,
+        EachDirAtlasManul,
         EachDirAuto
     }
     [System.Serializable]
