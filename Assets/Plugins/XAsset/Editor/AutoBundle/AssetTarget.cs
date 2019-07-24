@@ -32,22 +32,37 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
         private readonly List<string> _children = new List<string>();
         private AssetBundleExportType _exportType;
         public static readonly Dictionary<string, AssetTarget> AllAssetTargts = new Dictionary<string, AssetTarget>();
-        public static readonly Dictionary<string, PackMode> AllAtlasDirs = new Dictionary<string, PackMode>();
+        public static readonly HashSet<string> AutoAssetDirs = new HashSet<string>();
 
         private bool _marked;
 
         public AssetTarget(string assetPath, string bundleName, AssetBundleExportType exportType)
         {
+            var beDepAsset = bundleName == null;
             _assetPath = assetPath;
+            _exportType = exportType;
+
+            if (beDepAsset)
+            {
+                var assetDir = Path.GetDirectoryName(assetPath);
+                if (AutoAssetDirs.Contains(assetDir))
+                {
+                    bundleName = GetBundleName(new DirectoryInfo(assetDir), new FileInfo(assetPath),
+                        PackMode.EachDirAuto);
+                    _exportType = AssetBundleExportType.Shared;
+                }
+            }
+
+
             _bundleName = AssetsMenuItem.TrimedAssetBundleName(bundleName ?? assetPath);
             var dir = Path.GetDirectoryName(_bundleName);
             var name = Path.GetFileNameWithoutExtension(_bundleName);
             _bundleName = Path.Combine(dir, name).Replace("\\", "/").ToLower();
-            _exportType = exportType;
 
-            if (bundleName == null)
+
+            if (beDepAsset)
             {
-                _bundleName += "_auto"; //todo atlas可以这里判断是不是位于atlas目录,是就弄到atlas里面!
+                _bundleName += "_auto";
             }
 
             if (!AllAssetTargts.ContainsKey(assetPath))
@@ -165,11 +180,12 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
             FileInfo[] atlasFileInfos = atlasDir.GetFiles("*.spriteatlas", SearchOption.AllDirectories);
             foreach (FileInfo file in atlasFileInfos)
             {
-                if (!validAtlasFiles.ContainsValue(file.Name))//todo: win下路径检查
+                if (!validAtlasFiles.ContainsValue(file.Name)) //todo: win下路径检查
                 {
                     file.Delete();
                 }
             }
+
             foreach (var keyValuePair in validAtlasFiles)
             {
                 var bundleName = keyValuePair.Key;
@@ -177,10 +193,12 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
                 bundleMap[bundleName].Clear();
                 bundleMap[bundleName].Add(Path.Combine(configAtlasOutputDir, alasFileName));
             }
+
             AssetDatabase.SaveAssets();
         }
 
-        private static string UpdatSpriteAtlasFile(string configAtlasOutputDir, string atlasName, List<string> assetList)
+        private static string UpdatSpriteAtlasFile(string configAtlasOutputDir, string atlasName,
+            List<string> assetList)
         {
             var atlasAssetPath = Path.Combine(configAtlasOutputDir, atlasName) + ".spriteatlas";
             if (!File.Exists(atlasAssetPath))
@@ -217,7 +235,7 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
                 spriteAtlas.Add(new[] {assetAtPath});
             }
 
-            return atlasName+".spriteatlas";
+            return atlasName + ".spriteatlas";
         }
 
         private static void SaveRelationMap(Dictionary<string, List<string>> bundleMap)
@@ -344,7 +362,7 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
             }
         }
 
-        public static string GetBundleName(DirectoryInfo bundleDir, FileInfo file, PackMode fPackMode, string pattern)
+        public static string GetBundleName(DirectoryInfo bundleDir, FileInfo file, PackMode fPackMode, string pattern = null)
         {
             switch (fPackMode)
             {
@@ -358,6 +376,7 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
                     return bundleDir + "_t" + (int) fPackMode;
                 case PackMode.AtlasAuto:
                 case PackMode.AtlasManul:
+                case PackMode.EachDirAuto:
                 case PackMode.EachDir:
                     var d = file.Directory;
                     // ReSharper disable once PossibleNullReferenceException
