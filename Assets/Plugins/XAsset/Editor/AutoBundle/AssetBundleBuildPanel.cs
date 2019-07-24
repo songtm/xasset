@@ -1,12 +1,27 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using UnityEditor;
 using UnityEditorInternal;
 using UnityEngine;
 using XAsset.Plugins.XAsset.Editor.AutoBundle;
+using Object = UnityEngine.Object;
 
 namespace Plugins.XAsset.Editor.AutoBundle
 {
+    public static class ExtClass
+    {
+        public static IEnumerable<FileInfo> GetFilesByExtensions(this DirectoryInfo dirInfo,  string[] extensions, SearchOption option)
+        {
+            var allowedExtensions = new HashSet<string>(extensions, StringComparer.OrdinalIgnoreCase);
+
+            return dirInfo.GetFiles("*.*", option)
+                .Where(f => allowedExtensions.Contains(f.Extension));
+        }
+
+    }
+
     public class AssetBundleBuildPanel : EditorWindow
     {
         [MenuItem("ABSystem/Builder Panel")]
@@ -34,7 +49,7 @@ namespace Plugins.XAsset.Editor.AutoBundle
             {
                 if (f.valid && (f.packMode == PackMode.AtlasAuto || f.packMode == PackMode.AtlasManul))
                 {
-                    AddRootTargets(new DirectoryInfo(f.path), f.packMode, "*.png", //todo
+                    AddRootTargets(new DirectoryInfo(f.path), f.packMode, config.SpriteExtension,
                         f.packMode == PackMode.AtlasAuto
                             ? AssetBundleExportType.AtlasUnused
                             : AssetBundleExportType.AtlasUsed);
@@ -74,9 +89,9 @@ namespace Plugins.XAsset.Editor.AutoBundle
             SearchOption searchOption = SearchOption.AllDirectories)
         {
             if (string.IsNullOrEmpty(pattern))
-                pattern = "*.*";
-
-            FileInfo[] prefabs = bundleDir.GetFiles(pattern, searchOption);
+                pattern = ".prefab";
+            var pans = pattern.Split(';');
+            var prefabs = bundleDir.GetFilesByExtensions(pans, searchOption);
             foreach (FileInfo file in prefabs)
             {
                 if (file.Extension.Contains("meta"))
@@ -87,7 +102,6 @@ namespace Plugins.XAsset.Editor.AutoBundle
                 new AssetTarget(assetPath, bundleName, exportType);
             }
         }
-
 
         static T LoadAssetAtPath<T>(string path) where T : Object
         {
@@ -240,9 +254,9 @@ namespace Plugins.XAsset.Editor.AutoBundle
                 //format
                 GUILayout.BeginHorizontal();
                 {
-                    _config.graphMode =
-                        (AssetBundleBuildConfig.GraphMode) EditorGUILayout.EnumPopup("Graph Mode", _config.graphMode);
                     _config.AtlasOutputDir = EditorGUILayout.TextField("AtlasOutputDir", _config.AtlasOutputDir);
+                    _config.SpriteExtension = EditorGUILayout.TextField("SpriteExtension", _config.SpriteExtension);
+                    _config.graphMode = (AssetBundleBuildConfig.GraphMode) EditorGUILayout.EnumPopup("Graph Mode", _config.graphMode);
                 }
                 GUILayout.EndHorizontal();
 

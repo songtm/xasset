@@ -15,6 +15,7 @@ namespace Plugins.XAsset.Editor.AutoBundle
         public GraphMode graphMode = GraphMode.ShowLinkName;
 
         public string AtlasOutputDir = "Assets/SpriteAtlases";
+        public string SpriteExtension = ".png;.jpg;.jpeg";
         public List<AssetBundleFilter> filters = new List<AssetBundleFilter>();
     }
 
@@ -32,7 +33,7 @@ namespace Plugins.XAsset.Editor.AutoBundle
     {
         public bool valid = true;
         public string path = string.Empty;
-        public string filter = "*.prefab";
+        public string filter = ".prefab";
         public PackMode packMode = PackMode.Indepent;
     }
 }
