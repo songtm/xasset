@@ -21,12 +21,13 @@ namespace Plugins.XAsset.Editor.AutoBundle
 
     public enum PackMode
     {
-        Indepent,
+        EachFile,
         AllInOne,
-        PerAnyDir,
-        PerSubDir,
+        EachDir,
+        SubDir,
         AtlasAuto,
-        AtlasManul
+        AtlasManul,
+        EachDirAuto
     }
     [System.Serializable]
     public class AssetBundleFilter
@@ -34,6 +35,6 @@ namespace Plugins.XAsset.Editor.AutoBundle
         public bool valid = true;
         public string path = string.Empty;
         public string filter = ".prefab";
-        public PackMode packMode = PackMode.Indepent;
+        public PackMode packMode = PackMode.EachFile;
     }
 }

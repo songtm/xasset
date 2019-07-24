@@ -348,7 +348,7 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
         {
             switch (fPackMode)
             {
-                case PackMode.Indepent:
+                case PackMode.EachFile:
                     var pre = Directory.GetParent(Application.dataPath).FullName + Path.DirectorySeparatorChar;
                     var path = file.FullName.Replace(pre, "");
                     var dirtmp = Path.GetDirectoryName(path);
@@ -358,12 +358,12 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
                     return bundleDir + "_t" + (int) fPackMode;
                 case PackMode.AtlasAuto:
                 case PackMode.AtlasManul:
-                case PackMode.PerAnyDir:
+                case PackMode.EachDir:
                     var d = file.Directory;
                     // ReSharper disable once PossibleNullReferenceException
                     var str2 = bundleDir + d.FullName.Replace(bundleDir.FullName, "");
                     return str2 + "_t" + (int) fPackMode;
-                case PackMode.PerSubDir:
+                case PackMode.SubDir:
                     var dir = file.Directory;
                     var subDir = "";
                     // ReSharper disable once PossibleNullReferenceException
