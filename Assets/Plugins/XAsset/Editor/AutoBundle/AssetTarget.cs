@@ -116,15 +116,16 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
 
             foreach (var target in AllAssetTargts)
             {
+                if (target.Value._exportType == AssetBundleExportType.AtlasUnused) continue;
                 MarkSharedAssets(target.Value);
             }
 
             var bundleMap = new Dictionary<string, List<string>>();
             foreach (var assetTargt in AllAssetTargts)
             {
-                if (assetTargt.Value._exportType != AssetBundleExportType.Asset)
+//                if (assetTargt.Value._exportType != AssetBundleExportType.Asset)
                 {
-                    if (NewSpriteAtlasSystem && assetTargt.Value._exportType == AssetBundleExportType.AtlasUnused)
+                    if (assetTargt.Value._exportType == AssetBundleExportType.AtlasUnused)
                         continue;
                     string bundleName = assetTargt.Value._bundleName;
                     if (!bundleMap.ContainsKey(bundleName))
@@ -190,7 +191,7 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
             {
                 var bundleName = keyValuePair.Key;
                 var alasFileName = keyValuePair.Value;
-                bundleMap[bundleName].Clear();
+//                bundleMap[bundleName].Clear();
                 bundleMap[bundleName].Add(Path.Combine(configAtlasOutputDir, alasFileName));
             }
 
@@ -200,6 +201,7 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
         private static string UpdatSpriteAtlasFile(string configAtlasOutputDir, string atlasName,
             List<string> assetList)
         {
+            assetList = new List<string>(assetList); //不要修改原list内容
             var atlasAssetPath = Path.Combine(configAtlasOutputDir, atlasName) + ".spriteatlas";
             if (!File.Exists(atlasAssetPath))
             {
@@ -340,6 +342,10 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
             {
                 target._exportType = AssetBundleExportType.Shared;
             }
+            else if (belongtos.Count == 1 && target._exportType == AssetBundleExportType.Asset)
+            {
+                target._bundleName = belongtos.First();
+            }
 
             target._marked = true;
         }
@@ -348,6 +354,8 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
         {
             switch (target._exportType)
             {
+                case AssetBundleExportType.AtlasUnused:
+                case AssetBundleExportType.AtlasUsed:
                 case AssetBundleExportType.Shared:
                 case AssetBundleExportType.Root:
                     rootSet.Add(target);
