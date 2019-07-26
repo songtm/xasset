@@ -10,6 +10,7 @@ namespace Plugins.XAsset.Editor
     [CustomEditor(typeof(AssetsManifest))]
     public class ManifestInspector : UnityEditor.Editor
     {
+        private DateTime _lastModify = DateTime.MinValue;
         private string _manifestStr;
         private int _startLine;
         private const int _displayLineNum = 60;
@@ -41,6 +42,7 @@ namespace Plugins.XAsset.Editor
         private void buildCahe()
         {
             Debug.Log("rebuild");
+            _lastModify = File.GetLastWriteTime(Utility.AssetsManifestAsset);
             var manifest = BuildScript.GetManifest();
             var sb = new StringBuilder(512);
 
@@ -81,6 +83,9 @@ namespace Plugins.XAsset.Editor
 
         public override void OnInspectorGUI()
         {
+            if (_lastModify != File.GetLastWriteTime(Utility.AssetsManifestAsset))
+                buildCahe();
+
             EditorGUILayout.PropertyField(serializedObject.FindProperty("downloadURL"), true);
             EditorGUILayout.PropertyField(serializedObject.FindProperty("activeVariants"), true);
 
