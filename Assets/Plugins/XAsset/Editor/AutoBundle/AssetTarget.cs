@@ -11,6 +11,8 @@ using UnityEngine;
 using UnityEngine.U2D;
 using Object = UnityEngine.Object;
 
+#define NEW_ATLAS_SYSTEM
+
 namespace XAsset.Plugins.XAsset.Editor.AutoBundle
 {
     public enum AssetBundleExportType
@@ -25,7 +27,6 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
     public class AssetTarget
     {
         public static HashSet<string> IgnoreDepFindExt = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        public static bool NewSpriteAtlasSystem = true;
         private string _bundleName;
         private readonly string _assetPath;
         private readonly List<string> _parents = new List<string>();
@@ -112,7 +113,6 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
                     AllAssetTargts[parent]._children.Add(assetTarget.Key);
                 }
             }
-            //todo: output relation graph!
 
             foreach (var target in AllAssetTargts)
             {
@@ -123,18 +123,17 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
             var bundleMap = new Dictionary<string, List<string>>();
             foreach (var assetTargt in AllAssetTargts)
             {
-//                if (assetTargt.Value._exportType != AssetBundleExportType.Asset)
+#if NEW_ATLAS_SYSTEM //旧版本的 sprite packer 需要去掉不用 sprite 的 pack tag
+                if (assetTargt.Value._exportType == AssetBundleExportType.AtlasUnused)
+                    continue;
+#endif
+                string bundleName = assetTargt.Value._bundleName;
+                if (!bundleMap.ContainsKey(bundleName))
                 {
-                    if (assetTargt.Value._exportType == AssetBundleExportType.AtlasUnused)
-                        continue;
-                    string bundleName = assetTargt.Value._bundleName;
-                    if (!bundleMap.ContainsKey(bundleName))
-                    {
-                        bundleMap.Add(bundleName, new List<string>());
-                    }
-
-                    bundleMap[bundleName].Add(assetTargt.Key);
+                    bundleMap.Add(bundleName, new List<string>());
                 }
+
+                bundleMap[bundleName].Add(assetTargt.Key);
 
                 if (assetTargt.Value._exportType == AssetBundleExportType.AtlasUnused)
                 {
@@ -144,17 +143,15 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
 
             SaveRelationMap(bundleMap);
 
-            if (NewSpriteAtlasSystem)
-                ProcessSpriteAtlas(bundleMap, configAtlasOutputDir);
-            else
-            {
-                Debug.LogError("todo"); //todo
-            }
-
+#if NEW_ATLAS_SYSTEM
+            ProcessSpriteAtlas(bundleMap, configAtlasOutputDir);
+#else
+                Debug.LogError("todo"); //todo sprite packer
+#endif
             return bundleMap;
         }
 
-        //这里可以用新版的 sprite atlas 或者旧版的 sprite packer
+#if NEW_ATLAS_SYSTEM
         private static void ProcessSpriteAtlas(Dictionary<string, List<string>> bundleMap, string configAtlasOutputDir)
         {
             if (!Directory.Exists(configAtlasOutputDir))
@@ -239,6 +236,7 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
 
             return atlasName + ".spriteatlas";
         }
+#endif
 
         private static void SaveRelationMap(Dictionary<string, List<string>> bundleMap)
         {
@@ -370,7 +368,8 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
             }
         }
 
-        public static string GetBundleName(DirectoryInfo bundleDir, FileInfo file, PackMode fPackMode, string pattern = null)
+        public static string GetBundleName(DirectoryInfo bundleDir, FileInfo file, PackMode fPackMode,
+            string pattern = null)
         {
             switch (fPackMode)
             {
