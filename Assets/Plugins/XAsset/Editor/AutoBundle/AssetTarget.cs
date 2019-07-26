@@ -1,3 +1,4 @@
+#define NEW_ATLAS_SYSTEM
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -11,7 +12,6 @@ using UnityEngine;
 using UnityEngine.U2D;
 using Object = UnityEngine.Object;
 
-#define NEW_ATLAS_SYSTEM
 
 namespace XAsset.Plugins.XAsset.Editor.AutoBundle
 {
