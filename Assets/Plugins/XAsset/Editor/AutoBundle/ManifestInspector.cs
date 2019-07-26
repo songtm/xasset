@@ -86,9 +86,10 @@ namespace Plugins.XAsset.Editor
             if (_lastModify != File.GetLastWriteTime(Utility.AssetsManifestAsset))
                 buildCahe();
 
+            serializedObject.UpdateIfRequiredOrScript(); //todo : check this out
             EditorGUILayout.PropertyField(serializedObject.FindProperty("downloadURL"), true);
             EditorGUILayout.PropertyField(serializedObject.FindProperty("activeVariants"), true);
-
+            serializedObject.ApplyModifiedProperties(); //end todo
 
             GUILayout.BeginHorizontal();
             if (GUILayout.Button("<<", EditorStyles.label, GUILayout.MaxWidth(40)))
