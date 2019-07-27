@@ -1,16 +1,20 @@
 using System;
 using System.Collections.Generic;
 using Plugins.XAsset;
-
+//todo 出错后的 重试机制??
 namespace XAsset.Plugins.XAsset.Custom
 {
     public static class BundleDispatcher
     {
         public static int webBundleMax = 2;
         public static int asyncBundleMax = 3;
+        // ReSharper disable once InconsistentNaming
         private static readonly List<Bundle> _asyncLoading = new List<Bundle>();
+        // ReSharper disable once InconsistentNaming
         private static readonly List<Bundle> _webLoading = new List<Bundle>();
+        // ReSharper disable once InconsistentNaming
         private static readonly Stack<Bundle> _asyncReady = new Stack<Bundle>();
+        // ReSharper disable once InconsistentNaming
         private static readonly Stack<Bundle> _webReady = new Stack<Bundle>();
 
         public static void Initialize()
@@ -24,7 +28,7 @@ namespace XAsset.Plugins.XAsset.Custom
             {
                 foreach (var bundle in ready2Load) //todo check 是不是由前往后的
                 {
-                    if (bundle is WebBundle)
+                    if (bundle is WebBundle)//优先级处理,比如一个bundle的所有依赖都要提升!
                     {
                         _webReady.Push(bundle);
                     }
@@ -37,42 +41,33 @@ namespace XAsset.Plugins.XAsset.Custom
                 ready2Load.Clear();
             }
 
-            var asyncCanLoad = Math.Min(asyncBundleMax - _asyncLoading.Count, _asyncReady.Count);
-            for (var i = 0; i < asyncCanLoad; i++)
-            {
-                var bundle = _asyncReady.Pop();
-                doLoad(bundle);
-                _asyncLoading.Add(bundle);
-            }
+            PatchBundleEach(asyncBundleMax, _asyncReady, _asyncLoading, doLoad);
+            PatchBundleEach(webBundleMax, _webReady, _webLoading, doLoad);
 
-            var webCanLoad = Math.Min(webBundleMax - _webLoading.Count, _webReady.Count);
-            for (var i = 0; i < webCanLoad; i++)
-            {
-                var bundle = _webReady.Pop();
-                doLoad(bundle);
-                _webLoading.Add(bundle);
-            }
+        }
 
-            for (int i = 0; i < _asyncLoading.Count; i++)
+        private static void PatchBundleEach(int max, Stack<Bundle> readyBundles, List<Bundle> loading,
+            Action<Bundle> doLoad)
+        {
+            while (max - loading.Count > 0 && readyBundles.Count > 0)
             {
-                var item = _asyncLoading[i];
-                if (item.loadState == LoadState.Loaded || item.loadState == LoadState.Unload)
+                var bundle = readyBundles.Pop();
+                if (bundle.loadState == LoadState.Init)//避免可能其它地方调用了开始
                 {
-                    _asyncLoading.RemoveAt(i);
-                    i--;
+                    doLoad(bundle);
+                    loading.Add(bundle);
                 }
             }
 
-            for (int i = 0; i < _webLoading.Count; i++)
+            for (int i = 0; i < loading.Count; i++)
             {
-                var item = _webLoading[i];
-                if (item.loadState == LoadState.Loaded || item.loadState == LoadState.Unload)
+                var item = loading[i];
+                if (item.loadState == LoadState.Loaded || item.loadState == LoadState.Unload) //todo 如果出错会怎么样?
                 {
-                    _webLoading.RemoveAt(i);
+                    loading.RemoveAt(i);
                     i--;
                 }
             }
-
         }
     }
 }
