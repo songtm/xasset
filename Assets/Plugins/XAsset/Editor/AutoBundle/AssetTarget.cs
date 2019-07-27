@@ -27,36 +27,41 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
     public class AssetTarget
     {
         public static HashSet<string> IgnoreDepFindExt = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
         private string _bundleName;
+        private PackMode _bundlePackMode;
+        private AssetBundleExportType _exportType;
+
         private readonly string _assetPath;
         private readonly List<string> _parents = new List<string>();
         private readonly List<string> _children = new List<string>();
-        private AssetBundleExportType _exportType;
+
         public static readonly Dictionary<string, AssetTarget> AllAssetTargts = new Dictionary<string, AssetTarget>();
         public static readonly HashSet<string> AutoAssetDirs = new HashSet<string>();
 
         private bool _marked;
 
-        public AssetTarget(string assetPath, string bundleName, AssetBundleExportType exportType)
+        public AssetTarget(string assetPath, string bundleName, PackMode bundlePackMode, AssetBundleExportType exportType)
         {
-            var beDepAsset = bundleName == null;
             _assetPath = assetPath;
-            _exportType = exportType;
 
-            if (beDepAsset)
+            if (bundleName == null)
             {
                 var assetDir = Path.GetDirectoryName(assetPath);
                 if (AutoAssetDirs.Contains(assetDir))
                 {
                     bundleName = GetBundleName(new DirectoryInfo(assetDir), new FileInfo(assetPath),
                         PackMode.EachDirAuto);
-                    _exportType = AssetBundleExportType.Shared;
+                    bundlePackMode = PackMode.EachDirAuto;
+                    exportType = AssetBundleExportType.Root;//todo check root or shared
                 }
             }
 
             _bundleName = AssetsMenuItem.TrimedAssetBundleName(bundleName ?? assetPath).Replace("\\", "-").Replace("/", "-")
                 .Replace(".", "_").Replace(" ", "_").ToLower();
-            if (beDepAsset) _bundleName += "_auto";
+            _bundlePackMode = bundlePackMode;
+            _exportType = exportType;
+            if (bundleName == null) _bundleName += "_auto";
             if (!AllAssetTargts.ContainsKey(assetPath))
             {
 //                Debug.Log("add:" + assetPath);
@@ -76,7 +81,7 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
 //                        Debug.Log("    dep:" + dep);
                         _parents.Add(dep);
                         // ReSharper disable once ObjectCreationAsStatement
-                        new AssetTarget(dep, null, AssetBundleExportType.Asset);
+                        new AssetTarget(dep, null, (PackMode) (-1), AssetBundleExportType.Asset);
                     }
                 }
             }
@@ -86,7 +91,8 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
                 if (bundleName != null) //防止前面的 filter 的依赖提前添加了后面的的 filter 结果
                 {
                     t._bundleName = _bundleName;
-                    t._exportType = exportType;
+                    t._bundlePackMode = _bundlePackMode;
+                    t._exportType = _exportType;
                 }
                 else if (t._exportType == AssetBundleExportType.AtlasUnused)
                 {
@@ -132,7 +138,7 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
                 }
             }
 
-            SaveRelationMap(bundleMap);
+            SaveRelationMap(bundleMap); //注意这里要去掉unused的asset
 
 #if NEW_ATLAS_SYSTEM
             ProcessSpriteAtlas(bundleMap, configAtlasOutputDir);
@@ -171,6 +177,7 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
             {
                 if (!validAtlasFiles.ContainsValue(file.Name)) //todo: win下路径检查
                 {
+                    File.Delete(file.FullName + ".meta"); //todo check 这样反复删除meta会不会影响sprite的引用,还是会自动生成atlas引用?
                     file.Delete();
                 }
             }
@@ -259,7 +266,12 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
                             string.Format(" [color=\"blue\", fontcolor=\"blue\", label=\"{{<f0> {0} |<f1> * }}\"]",
                                 bundleName));
                     }
-
+                    else if (assetTarget.Value._exportType == AssetBundleExportType.AtlasUsed)
+                    {
+                        builder.Append(
+                            string.Format(" [color=\"blue\", fontcolor=\"blue\", label=\"{0} | {1}\"]",
+                                bundleName, assetTarget.Value._bundlePackMode));
+                    }
 
                     builder.AppendLine();
                 }

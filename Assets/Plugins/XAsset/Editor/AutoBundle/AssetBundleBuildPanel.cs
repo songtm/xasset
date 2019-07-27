@@ -189,7 +189,7 @@ namespace Plugins.XAsset.Editor.AutoBundle
 
                 var assetPath = "Assets" + file.FullName.Replace(Application.dataPath, "");
                 var bundleName = AssetTarget.GetBundleName(bundleDir, file, fPackMode, pattern);
-                new AssetTarget(assetPath, bundleName, exportType);
+                new AssetTarget(assetPath, bundleName,fPackMode, exportType);
             }
         }
 
