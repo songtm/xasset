@@ -17,6 +17,7 @@ namespace XAsset.Plugins.XAsset.Custom
             Bundles.OverrideBaseDownloadingUrl += bundleName =>
             {
                 //todo 自定义bunel加载路径! 是远程下载还是cache,还是安装包里
+//                Debug.Log(bundleName);
                 return null;
             };
 
