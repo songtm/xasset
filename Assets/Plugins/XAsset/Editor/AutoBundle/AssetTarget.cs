@@ -248,34 +248,7 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
     edge [ fontname = ""Microsoft YaHei"", fontsize = 12 , color=""coral""];";
             StringBuilder builder = new StringBuilder();
             builder.AppendLine(header);
-            var nodes = new HashSet<string>();
-            foreach (KeyValuePair<string, AssetTarget> assetTarget in AllAssetTargts)
-            {
-                var bundleName = assetTarget.Value._bundleName;
-                if (bundleMap.ContainsKey(bundleName) && nodes.Add(bundleName))
-                {
-//                    var deps = manifest.GetAllDependencies(assetTarget.abFileName);
-                    builder.Append("\t");
-                    builder.Append('"' + bundleName + '"');
-                    if (assetTarget.Value._exportType == AssetBundleExportType.Shared)
-                        builder.Append(
-                            " [color=\"red\", fontcolor=\"red\", shape=\"ellipse\", fillcolor=\"lightblue1\", style=\"filled\"]");
-                    else if (assetTarget.Value._exportType == AssetBundleExportType.Root)
-                    {
-                        builder.Append(
-                            string.Format(" [color=\"blue\", fontcolor=\"blue\", label=\"{{<f0> {0} |<f1> * }}\"]",
-                                bundleName));
-                    }
-                    else if (assetTarget.Value._exportType == AssetBundleExportType.AtlasUsed)
-                    {
-                        builder.Append(
-                            string.Format(" [color=\"blue\", fontcolor=\"blue\", label=\"{0} | {1}\"]",
-                                bundleName, assetTarget.Value._bundlePackMode));
-                    }
 
-                    builder.AppendLine();
-                }
-            }
 
             var assetBundleBuildConfig =
                 AssetDatabase.LoadAssetAtPath<AssetBundleBuildConfig>(AssetBundleBuildPanel.savePath);
@@ -285,10 +258,14 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
                 assetBundleBuildConfig.graphMode ==
                 AssetBundleBuildConfig.GraphMode.MergeLink; //一个包里有多个资源依赖同一个资源 就会有多条链接
             var linked = new HashSet<string>();
-            foreach (var kv in AllAssetTargts)
+            var depBundleMap = new Dictionary<string, HashSet<string>>(); //bundlename:{bundlename,bundlename}
+            foreach (var kv in AllAssetTargts) //edge
             {
                 var assetTarget = kv.Value;
                 var deps = assetTarget._parents;
+                if (!depBundleMap.ContainsKey(assetTarget._bundleName))
+                    depBundleMap[assetTarget._bundleName] = new HashSet<string>();
+
                 foreach (var depname in deps)
                 {
                     var depTarget = AllAssetTargts[depname];
@@ -296,6 +273,8 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
                         !bundleMap.ContainsKey(depTarget._bundleName))
                         continue;
                     if (assetTarget._bundleName == depTarget._bundleName) continue;
+
+                    depBundleMap[assetTarget._bundleName].Add(depTarget._bundleName);
                     string edge = '"' + assetTarget._bundleName + "\"->\"" + depTarget._bundleName + '"';
                     bool needShow = true;
                     if (mergeShow)
@@ -315,10 +294,37 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
                         builder.AppendLine(edge);
                     }
                 }
-
-                builder.AppendLine();
             }
 
+            //node
+            var nodes = new HashSet<string>();
+            foreach (KeyValuePair<string, AssetTarget> assetTarget in AllAssetTargts)
+            {
+                var bundleName = assetTarget.Value._bundleName;
+                if (bundleMap.ContainsKey(bundleName) && nodes.Add(bundleName))
+                {
+                    builder.Append("\t");
+                    builder.Append('"' + bundleName + '"');
+                    if (assetTarget.Value._exportType == AssetBundleExportType.Shared)
+                        builder.Append(
+                            " [color=\"red\", fontcolor=\"red\", shape=\"ellipse\", fillcolor=\"lightblue1\", style=\"filled\"]");
+                    else if (assetTarget.Value._exportType == AssetBundleExportType.Root)
+                    {
+                        builder.Append(
+                            string.Format(" [color=\"blue\", fontcolor=\"blue\", label=\"{{<f0> {0} |<f1>{1}}}\"]",
+                                bundleName, depBundleMap[bundleName].Count));
+                    }
+                    else if (assetTarget.Value._exportType == AssetBundleExportType.AtlasUsed)
+                    {
+                        builder.Append(
+                            string.Format(" [color=\"blue\", fontcolor=\"blue\", label=\"{0} | {1}\"]",
+                                bundleName, assetTarget.Value._bundlePackMode));
+                    }
+
+                    builder.AppendLine();
+                }
+            }
+            //end node
             builder.AppendLine("}");
             File.WriteAllText(Path.Combine(Application.dataPath, "00dep.dot"), builder.ToString());
         }
