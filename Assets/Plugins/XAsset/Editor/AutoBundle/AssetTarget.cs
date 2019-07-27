@@ -54,18 +54,9 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
                 }
             }
 
-
-            _bundleName = AssetsMenuItem.TrimedAssetBundleName(bundleName ?? assetPath);
-            var dir = Path.GetDirectoryName(_bundleName);
-            var name = Path.GetFileNameWithoutExtension(_bundleName);
-            _bundleName = Path.Combine(dir, name).Replace("\\", "/").ToLower();
-
-
-            if (beDepAsset)
-            {
-                _bundleName += "_auto";
-            }
-
+            _bundleName = AssetsMenuItem.TrimedAssetBundleName(bundleName ?? assetPath).Replace("\\", "-").Replace("/", "-")
+                .Replace(".", "_").Replace(" ", "_").ToLower();
+            if (beDepAsset) _bundleName += "_auto";
             if (!AllAssetTargts.ContainsKey(assetPath))
             {
 //                Debug.Log("add:" + assetPath);
@@ -371,6 +362,7 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
         public static string GetBundleName(DirectoryInfo bundleDir, FileInfo file, PackMode fPackMode,
             string pattern = null)
         {
+            string res = null;
             switch (fPackMode)
             {
                 case PackMode.EachFile:
@@ -378,9 +370,11 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
                     var path = file.FullName.Replace(pre, "");
                     var dirtmp = Path.GetDirectoryName(path);
                     var name = Path.GetFileNameWithoutExtension(path);
-                    return Path.Combine(dirtmp, name) + "_t" + (int) fPackMode;
+                    res = Path.Combine(dirtmp, name) + "_t" + (int) fPackMode;
+                    break;
                 case PackMode.AllInOne:
-                    return bundleDir + "_t" + (int) fPackMode;
+                    res = bundleDir + "_t" + (int) fPackMode;
+                    break;
                 case PackMode.EachDirAtlasAuto:
                 case PackMode.EachDirAtlasManul:
                 case PackMode.EachDirAuto:
@@ -388,7 +382,8 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
                     var d = file.Directory;
                     // ReSharper disable once PossibleNullReferenceException
                     var str2 = bundleDir + d.FullName.Replace(bundleDir.FullName, "");
-                    return str2 + "_t" + (int) fPackMode;
+                    res = str2 + "_t" + (int) fPackMode;
+                    break;
                 case PackMode.SubDir:
                     var dir = file.Directory;
                     var subDir = "";
@@ -399,10 +394,11 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
                         dir = dir.Parent;
                     }
 
-                    return bundleDir + subDir + "_t" + (int) fPackMode;
-                default:
-                    return null;
+                    res = bundleDir + subDir + "_t" + (int) fPackMode;
+                    break;
             }
+
+            return res;
         }
     }
 }
