@@ -312,7 +312,7 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
                     {
                         builder.Append(
                             string.Format(" [color=\"blue\", fontcolor=\"blue\", label=\"{{<f0> {0} |<f1>{1}}}\"]",
-                                bundleName, depBundleMap[bundleName].Count));
+                                bundleName, depBundleMap[bundleName].Count));//这个只是直接依赖的数量
                     }
                     else if (assetTarget.Value._exportType == AssetBundleExportType.AtlasUsed)
                     {
