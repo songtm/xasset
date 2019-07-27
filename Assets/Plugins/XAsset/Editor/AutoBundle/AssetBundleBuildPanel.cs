@@ -10,6 +10,26 @@ using Object = UnityEngine.Object;
 
 namespace Plugins.XAsset.Editor.AutoBundle
 {
+
+    public class HideXassetMemu
+    {
+        [MenuItem("Assets/AssetBundles/按目录标记", true)]
+        static bool Hide1() => false;
+        [MenuItem("Assets/AssetBundles/按文件标记", true)]
+        static bool Hide2() => false;
+
+
+        [MenuItem("Assets/AssetBundles/按名称标记", true)]
+        static bool Hide3() =>false;
+        [MenuItem("Assets/AssetBundles/生成配置", true)]
+        static bool Hide4() =>false;
+        [MenuItem("Assets/AssetBundles/生成播放器", true)]
+        static bool Hide5() =>false;
+        [MenuItem("标记资源", true)]
+        static bool Hide6() =>false;
+
+
+    }
     public static class ExtClass
     {
         public static IEnumerable<FileInfo> GetFilesByExtensions(this DirectoryInfo dirInfo,  string[] extensions, SearchOption option)
@@ -24,13 +44,12 @@ namespace Plugins.XAsset.Editor.AutoBundle
 
     public class AssetBundleBuildPanel : EditorWindow
     {
-        [MenuItem("ABSystem/Builder Panel")]
+        [MenuItem("Assets/AssetBundles/AutoBundleSystem")]
         static void Open()
         {
             GetWindow<AssetBundleBuildPanel>("ABSystem", true);
         }
 
-        [MenuItem("ABSystem/Build AssetBundles")]
         static void BuildAssetBundles()
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode)
@@ -39,7 +58,7 @@ namespace Plugins.XAsset.Editor.AutoBundle
                 return;
             }
 
-            AssetBundleBuildConfig config = LoadAssetAtPath<AssetBundleBuildConfig>(savePath);
+            AssetBundleBuildConfig config = AssetDatabase.LoadAssetAtPath<AssetBundleBuildConfig>(savePath);
 
             if (config == null) return;
 
@@ -174,15 +193,6 @@ namespace Plugins.XAsset.Editor.AutoBundle
             }
         }
 
-        static T LoadAssetAtPath<T>(string path) where T : Object
-        {
-#if UNITY_5 || UNITY_2017_1_OR_NEWER
-            return AssetDatabase.LoadAssetAtPath<T>(path);
-#else
-			return (T)AssetDatabase.LoadAssetAtPath(path, typeof(T));
-#endif
-        }
-
         public static string savePath = "Assets/bundle_rule.asset";
 
         private AssetBundleBuildConfig _config;
@@ -258,7 +268,7 @@ namespace Plugins.XAsset.Editor.AutoBundle
 
         void InitConfig()
         {
-            _config = LoadAssetAtPath<AssetBundleBuildConfig>(savePath);
+            _config = AssetDatabase.LoadAssetAtPath<AssetBundleBuildConfig>(savePath);
             if (_config == null)
             {
                 _config = CreateInstance<AssetBundleBuildConfig>();
@@ -359,7 +369,7 @@ namespace Plugins.XAsset.Editor.AutoBundle
 
         void Save()
         {
-            if (LoadAssetAtPath<AssetBundleBuildConfig>(savePath) == null)
+            if (AssetDatabase.LoadAssetAtPath<AssetBundleBuildConfig>(savePath) == null)
             {
                 AssetDatabase.CreateAsset(_config, savePath);
             }
