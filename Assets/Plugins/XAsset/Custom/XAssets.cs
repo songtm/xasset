@@ -12,6 +12,7 @@ namespace XAsset.Plugins.XAsset.Custom
     public static class XAssets
     {
         private static HashSet<string> _assetSet;
+
         public static void Initialize(Action onSuccess, Action<string> onError)
         {
             Bundles.OverrideBaseDownloadingUrl += bundleName =>
@@ -29,9 +30,10 @@ namespace XAsset.Plugins.XAsset.Custom
             Assets.Initialize(onSuccess, onError);
         }
 
-        [Conditional("UNITY_EDITOR")]
+//        [Conditional("UNITY_EDITOR")]
         private static void InitEditorAssetLoader()
         {
+#if UNITY_EDITOR
             if (!Utility.assetBundleMode)
             {
                 _assetSet = new HashSet<string>();
@@ -59,8 +61,10 @@ namespace XAsset.Plugins.XAsset.Custom
                         Debug.LogWarning("Pls config/update manifest for " + assetPath);
                     }
                 }
+
                 return AssetDatabase.LoadAssetAtPath(assetPath, type);
             };
+#endif
         }
     }
 }
