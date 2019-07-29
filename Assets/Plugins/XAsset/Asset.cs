@@ -32,6 +32,7 @@ using System.IO;
 using UnityEngine;
 using UnityEngine.Networking;
 using UnityEngine.SceneManagement;
+using XAsset.Plugins.XAsset.Custom;
 using Debug = UnityEngine.Debug;
 using Object = UnityEngine.Object;
 
@@ -223,7 +224,7 @@ namespace Plugins.XAsset
 
     public class BundleAssetAsync : BundleAsset
     {
-        private AssetBundleRequest _request;
+        public AssetBundleRequestWrapper _request;
 
         public BundleAssetAsync(string bundle)
             : base(bundle)
@@ -269,7 +270,14 @@ namespace Plugins.XAsset
                             }
 
                             var assetName = Path.GetFileName(name);
-                            _request = bundle.assetBundle.LoadAssetAsync(assetName, assetType);
+                            _request = new AssetBundleRequestWrapper
+                            {
+                                bundle = bundle.assetBundle,
+                                assetName = assetName,
+                                assetType = assetType,
+                            };
+                            AssetAsyncDispatcher.Append(_request); //;bundle.assetBundle.LoadAssetAsync(assetName, assetType);
+
                             loadState = LoadState.LoadAsset;
                             break;
                         }
@@ -417,7 +425,7 @@ namespace Plugins.XAsset
                                 if (item.error != null)
                                     return true;
                             }
-                            
+
                             if (!bundle.isDone)
                                 return false;
 
@@ -531,7 +539,7 @@ namespace Plugins.XAsset
                     asset = _www.texture;
                 }
 
-                
+
 #endif
                 return _www.isDone;
             }
@@ -559,9 +567,9 @@ namespace Plugins.XAsset
                 _www = UnityWebRequestMultimedia.GetAudioClip(name, AudioType.WAV);
             }
             else if (assetType == typeof(Texture2D))
-            { 
+            {
                 _www = UnityWebRequestTexture.GetTexture(name);
-            } 
+            }
             else
             {
                 _www = new UnityWebRequest(name);

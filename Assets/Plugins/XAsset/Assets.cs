@@ -29,6 +29,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using UnityEngine;
+using XAsset.Plugins.XAsset.Custom;
 using Debug = UnityEngine.Debug;
 
 namespace Plugins.XAsset
@@ -183,6 +184,7 @@ namespace Plugins.XAsset
             _unusedAssets.Clear();
 
             Bundles.Update();
+            AssetAsyncDispatcher.Update();
         }
 
         [Conditional("LOG_ENABLE")]
@@ -205,6 +207,8 @@ namespace Plugins.XAsset
                 if (!item.name.Equals(path))
                     continue;
                 item.Retain();
+                if (item is BundleAssetAsync assetAsync)
+                    AssetAsyncDispatcher.Append(assetAsync._request);
                 return item;
             }
 
