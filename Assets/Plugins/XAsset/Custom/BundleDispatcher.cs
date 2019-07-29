@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using Plugins.XAsset;
 //todo 出错后的 重试机制??
-//todo 后面再次请求 在列表中的bundle的提升!
+//todo 后面再次请求 在列表中的bundle的提升! 再次添加到ready2Load调用dispatch!
 namespace XAsset.Plugins.XAsset.Custom
 {
     public static class BundleDispatcher
