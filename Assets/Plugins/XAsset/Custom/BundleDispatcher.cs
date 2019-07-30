@@ -13,7 +13,7 @@ namespace XAsset.Plugins.XAsset.Custom
     {
         public static bool enabled = true;
         public static int webBundleMax = 2;
-        public static int asyncBundleMax = 1;
+        public static int asyncBundleMax = 4;
 
         // ReSharper disable once InconsistentNaming
         private static readonly List<Bundle> _asyncLoading = new List<Bundle>();
@@ -27,8 +27,10 @@ namespace XAsset.Plugins.XAsset.Custom
         // ReSharper disable once InconsistentNaming
         private static readonly PriorityQueue<Bundle> _webBundleQeue = new PriorityQueue<Bundle>();
 
-        internal static void Initialize(bool enable)
+        internal static void Initialize(bool enable, int webLimit, int asyncLimit)
         {
+            webBundleMax = webLimit;
+            asyncBundleMax = asyncLimit;
             enabled = enable;
         }
 

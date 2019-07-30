@@ -23,8 +23,8 @@ namespace XAsset.Plugins.XAsset.Custom
             };
 
             //todo bundle异步加载分发策略 目前web bundle好像不能控制下载缓存路径什么的,要不要写一个httpBundle?
-            BundleDispatcher.Initialize(true);
-            AssetAsyncDispatcher.Initialize(true);
+            BundleDispatcher.Initialize(true, 2, 4);
+            AssetAsyncDispatcher.Initialize(true, 40);
             InitEditorAssetLoader();
 
             Assets.Initialize(onSuccess, onError);
