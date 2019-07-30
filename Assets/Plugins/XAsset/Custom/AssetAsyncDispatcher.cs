@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using Object = UnityEngine.Object;
-//todo 后面再次请求在列表中的提升!!
 
 namespace XAsset.Plugins.XAsset.Custom
 {
@@ -31,7 +30,7 @@ namespace XAsset.Plugins.XAsset.Custom
 
         public static void Append(AssetBundleRequestWrapper info)
         {
-            _asyncInfos.Push(info);
+            if (!info.loaded) _asyncInfos.Push(info);
         }
         public static void Update()
         {
