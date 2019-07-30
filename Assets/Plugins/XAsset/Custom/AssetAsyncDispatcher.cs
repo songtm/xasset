@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Plugins.XAsset;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
@@ -8,42 +9,73 @@ namespace XAsset.Plugins.XAsset.Custom
     public class AssetBundleRequestWrapper
     {
         private AssetBundleRequest _request;
-        public bool loaded;
         public void Loaded(AssetBundleRequest req)
         {
             _request = req;
-            loaded = true;
         }
 
         public float progress => _request?.progress ?? 0;
         public Object asset => _request.asset;
         public bool isDone => _request?.isDone ?? false;
-
-        public AssetBundle bundle;
-        public string assetName;
-        public Type assetType;
     }
+
     public static  class AssetAsyncDispatcher
     {
+        public static bool enabled = true;
         public static int maxCountPerFrame = 1;
-        private static readonly Stack<AssetBundleRequestWrapper> _asyncInfos = new Stack<AssetBundleRequestWrapper>();
+        private static readonly PriorityQueue<BundleAssetAsync> _assetAsyncQueue = new PriorityQueue<BundleAssetAsync>();
 
-        public static void Append(AssetBundleRequestWrapper info)
+        internal static void Initialize(bool enable)
         {
-            if (!info.loaded) _asyncInfos.Push(info);
+            enabled = enable;
         }
+
+        public static void Upgrade(BundleAssetAsync assetAsync)
+        {
+            if (!enabled) return;
+
+            if (assetAsync.loadState == LoadState.Init)//再次请求资源,但 bundle 还未就绪
+            {
+                //这种情况不存在
+                Debug.LogError("ohno");
+            }
+            else if (assetAsync.loadState == LoadState.LoadAssetBundle)
+            {
+                BundleDispatcher.Upgrade(assetAsync.GetBundle());
+            }
+            else if (assetAsync.loadState == LoadState.LoadAsset)////再次请求资源,但 资源还未就绪
+            {
+                _assetAsyncQueue.Up(assetAsync.queuePos);
+            }
+        }
+
+        public static void Append(BundleAssetAsync assetAsync)
+        {
+//            Debug.Log("append "+assetAsync.name);
+            if (!enabled)
+            {
+                assetAsync._request.Loaded(assetAsync.LoadBundleAssetAsync());
+            }
+            else if (assetAsync.loadState == LoadState.LoadAsset)
+            {
+                _assetAsyncQueue.Enqueue(assetAsync);
+            }
+        }
+
         public static void Update()
         {
-            if (_asyncInfos.Count <= 0) return;
+            if (!enabled) return;
+
+            if (_assetAsyncQueue.Count() <= 0) return;
 
             int loaded = 0;
-            while (_asyncInfos.Count > 0 && loaded < maxCountPerFrame)
+            while (_assetAsyncQueue.Count() > 0 && loaded < maxCountPerFrame)
             {
-                var info = _asyncInfos.Pop();
-                if (!info.loaded)
+                var assetAsync = _assetAsyncQueue.Dequeue();
+                if (assetAsync.loadState == LoadState.LoadAsset)
                 {
-                    var request = info.bundle.LoadAssetAsync(info.assetName, info.assetType);
-                    info.Loaded(request);
+                    assetAsync._request.Loaded(assetAsync.LoadBundleAssetAsync());
+                    //Debug.Log(" began loaded asset " + assetAsync.name + " f:"+Time.frameCount);
                     loaded++;
                 }
 

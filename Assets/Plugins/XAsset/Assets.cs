@@ -207,8 +207,9 @@ namespace Plugins.XAsset
                 if (!item.name.Equals(path))
                     continue;
                 item.Retain();
+                item.ResetReqTime();
                 if (item is BundleAssetAsync assetAsync)
-                    AssetAsyncDispatcher.Append(assetAsync._request);
+                    AssetAsyncDispatcher.Upgrade(assetAsync);
                 return item;
             }
 

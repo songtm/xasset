@@ -47,8 +47,28 @@ namespace Plugins.XAsset
         Unload,
     }
 
-    public class Asset : Reference, IEnumerator
+    public class Asset : Reference, IEnumerator, IPQueueable<Asset>
     {
+        //优先队列
+        int IPQueueable<Asset>.CompareTo(Asset other)
+        {
+            int res = 0;
+            if (_reqTime > other._reqTime) res = -1;
+            if (_reqTime < other._reqTime) res = 1;
+            return res;
+        }
+
+//        private static int nextid;
+        private float  _reqTime;
+        public int queuePos { get; set; } = -1;
+
+        public void ResetReqTime()
+        {
+//            _reqTime = nextid++;
+            _reqTime = Time.realtimeSinceStartup;//这个时间也可以用来做缓存策略
+        }
+        //end优先队列
+
         private List<Object> _requires;
         public Type assetType;
         public string name;
@@ -56,6 +76,7 @@ namespace Plugins.XAsset
 
         public Asset()
         {
+            ResetReqTime();
             asset = null;
             loadState = LoadState.Init;
         }
@@ -226,6 +247,11 @@ namespace Plugins.XAsset
     {
         public AssetBundleRequestWrapper _request;
 
+        public Bundle GetBundle() => bundle;
+        public AssetBundleRequest LoadBundleAssetAsync()
+        {
+            return bundle.assetBundle.LoadAssetAsync(Path.GetFileName(name), assetType);
+        }
         public BundleAssetAsync(string bundle)
             : base(bundle)
         {
@@ -269,16 +295,9 @@ namespace Plugins.XAsset
                                 return true;
                             }
 
-                            var assetName = Path.GetFileName(name);
-                            _request = new AssetBundleRequestWrapper
-                            {
-                                bundle = bundle.assetBundle,
-                                assetName = assetName,
-                                assetType = assetType,
-                            };
-                            AssetAsyncDispatcher.Append(_request); //;bundle.assetBundle.LoadAssetAsync(assetName, assetType);
-
                             loadState = LoadState.LoadAsset;
+                            _request = new AssetBundleRequestWrapper();
+                            AssetAsyncDispatcher.Append(this); //;bundle.assetBundle.LoadAssetAsync(assetName, assetType);
                             break;
                         }
                     case LoadState.Unload:

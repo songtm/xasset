@@ -28,6 +28,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using UnityEngine;
+using XAsset.Plugins.XAsset.Custom;
 using Debug = UnityEngine.Debug;
 
 namespace Plugins.XAsset
@@ -164,6 +165,7 @@ namespace Plugins.XAsset
 				if (!item.name.Equals (url))
 					continue;
 				item.Retain ();
+				BundleDispatcher.Upgrade(item);
 				return item;
 			}
 
@@ -209,7 +211,7 @@ namespace Plugins.XAsset
 
 		internal static void Update ()
 		{
-			if (MAX_LOAD_SIZE_PERFREME > 0) {
+			if (MAX_LOAD_SIZE_PERFREME > 0 && !BundleDispatcher.DispatchBundles(_ready2Load, bundle => bundle.Load())) {
 				if (_ready2Load.Count > 0 && _loading.Count < MAX_LOAD_SIZE_PERFREME) {
 					for (int i = 0; i < Math.Min(MAX_LOAD_SIZE_PERFREME - _loading.Count, _ready2Load.Count); i++) {
 						var item = _ready2Load [i];
