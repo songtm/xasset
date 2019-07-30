@@ -1,101 +1,99 @@
 using System;
 using System.Collections.Generic;
 using Plugins.XAsset;
+using UnityEngine;
+
+//大量堆积的 WebBundle不能影响玩家操作
+//大量堆积的 BundleAsync(如实现不卡操作的预加载/无缝加载) 也要排序
 //todo 出错后的 重试机制??
 //todo 后面再次请求 在列表中的bundle的提升! 再次添加到ready2Load调用dispatch!
 namespace XAsset.Plugins.XAsset.Custom
 {
     public static class BundleDispatcher
     {
+        public static bool enabled = true;
         public static int webBundleMax = 2;
-        public static int asyncBundleMax = 3;
-        public static bool webBundlePriority = false;//开了之后表示要处理优先级
-        public static bool asyncBundlePriority = false;//可用于实现预加载bunble? 但是预加载资源呢?有加载数量限制么?
+        public static int asyncBundleMax = 1;
 
         // ReSharper disable once InconsistentNaming
         private static readonly List<Bundle> _asyncLoading = new List<Bundle>();
+
         // ReSharper disable once InconsistentNaming
         private static readonly List<Bundle> _webLoading = new List<Bundle>();
-        // ReSharper disable once InconsistentNaming
-        private static readonly Stack<Bundle> _asyncReady = new Stack<Bundle>();
 
         // ReSharper disable once InconsistentNaming
-        private static readonly Stack<Bundle> _webReady = new Stack<Bundle>();
+        private static readonly PriorityQueue<Bundle> _asyncBundleQueue = new PriorityQueue<Bundle>();
 
-        private static readonly HashSet<Bundle> _read2LoadSet = new HashSet<Bundle>();
+        // ReSharper disable once InconsistentNaming
+        private static readonly PriorityQueue<Bundle> _webBundleQeue = new PriorityQueue<Bundle>();
 
-        internal static void Initialize()
+        internal static void Initialize(bool enable)
         {
-            //Bundles.OverrideBunbleDispater = DispatchBundles;
+            enabled = enable;
+        }
+
+        public static void Upgrade(Bundle bundle)
+        {
+            bundle.ResetReqTime();
+            UpgradOne(bundle);
+            foreach (var dependency in bundle.dependencies)
+            {
+                dependency.ResetReqTime();
+                UpgradOne(dependency);
+            }
+        }
+
+        private static void UpgradOne(Bundle bundle)
+        {
+            if (!enabled) return;
+            if (bundle.loadState == LoadState.Init)
+            {
+                if (bundle is WebBundle)
+                {
+                    _webBundleQeue.Up(bundle.queuePos);
+                }
+
+                if (bundle is BundleAsync)
+                {
+                    _asyncBundleQueue.Up(bundle.queuePos);
+                }
+            }
         }
 
         // ready2Load一般是一帧一帧来的, 所以基本里面包含了依赖的bundle
-        private static void DispatchBundles(List<Bundle> ready2Load, Action<Bundle> doLoad)
+        public static bool DispatchBundles(List<Bundle> ready2Load, Action<Bundle> doLoad)
         {
+            if (!enabled) return false;
             if (ready2Load.Count > 0)
             {
-                _read2LoadSet.Clear();
-                foreach (var bundle in ready2Load)
-                {
-                    _read2LoadSet.Add(bundle);
-                }
-
                 foreach (var bundle in ready2Load) //todo check 是不是由前往后的
                 {
-                    if (bundle is WebBundle)//优先级处理,比如一个bundle的所有依赖都要提升!
-                    {
-                        //_ready2Load是先放主,再放依赖, 比如已经在_webReady的话,如何提升!
-                        //哦 直接看bundle的引用计算就行了!
-                        _webReady.Push(bundle);
-                        if (webBundlePriority)
-                        {
-                            foreach (var depBundle in bundle.dependencies)
-                            {
-                                if (!_read2LoadSet.Contains(depBundle) && depBundle.loadState == LoadState.Init&&
-                                    depBundle is WebBundle)
-                                {
-                                    _webReady.Push(depBundle);
-                                }
-                            }
-                        }
-
-
-                    }
+                    if (bundle is WebBundle)
+                        _webBundleQeue.Enqueue(bundle);
                     else if (bundle is BundleAsync)
-                    {
-                        _asyncReady.Push(bundle);
-                        if (asyncBundlePriority)
-                        {
-                            foreach (var depBundle in bundle.dependencies)
-                            {
-                                if (!_read2LoadSet.Contains(depBundle) && depBundle.loadState == LoadState.Init&&
-                                    depBundle is BundleAsync)
-                                {
-                                    _asyncReady.Push(depBundle);
-                                }
-                            }
-                        }
-                    }
+                        _asyncBundleQueue.Enqueue(bundle);
                 }
 
                 ready2Load.Clear();
-                _read2LoadSet.Clear();
             }
 
-            PatchBundleEach(asyncBundleMax, _asyncReady, _asyncLoading, doLoad);
-            PatchBundleEach(webBundleMax, _webReady, _webLoading, doLoad);
+            PatchBundleEach(asyncBundleMax, _asyncBundleQueue, _asyncLoading, doLoad);
+            PatchBundleEach(webBundleMax, _webBundleQeue, _webLoading, doLoad);
             //todo 怎么判断当前的网速 扶不住了?
+
+            return true;
         }
 
-        private static void PatchBundleEach(int max, Stack<Bundle> readyBundles, List<Bundle> loading,
+        private static void PatchBundleEach(int max, PriorityQueue<Bundle> readyBundles, List<Bundle> loading,
             Action<Bundle> doLoad)
         {
-            while (max - loading.Count > 0 && readyBundles.Count > 0)
+            while (max - loading.Count > 0 && readyBundles.Count() > 0)
             {
-                var bundle = readyBundles.Pop();
-                if (bundle.loadState == LoadState.Init)//避免可能其它地方调用了开始
+                var bundle = readyBundles.Dequeue();
+                if (bundle.loadState == LoadState.Init) //避免可能其它地方调用了开始
                 {
                     doLoad(bundle);
+                    //Debug.Log(" begin loaded bundle" + bundle.name + " f:" + Time.frameCount);
                     loading.Add(bundle);
                 }
             }
