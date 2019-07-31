@@ -55,16 +55,16 @@ namespace XAsset.Plugins.XAsset.Custom
             return hexString;
         }
 
-        public static string GetMD5OfFile(string filePath)
-        {
-            var readAllBytes = File.ReadAllBytes(filePath);
-            return GetMD5(readAllBytes);
-        }
-
-        public static string GetMD5(byte[] bytes)
-        {
-            byte[] hash = Crypto.ComputeMD5Hash(bytes);
-            return ToHexString(hash);
-        }
+//        public static string GetMD5OfFile(string filePath)
+//        {
+//            var readAllBytes = File.ReadAllBytes(filePath);
+//            return GetMD5(readAllBytes);
+//        }
+//
+//        public static string GetMD5(byte[] bytes)
+//        {
+//            byte[] hash = Crypto.ComputeMD5Hash(bytes);
+//            return ToHexString(hash);
+//        }
     }
 }
