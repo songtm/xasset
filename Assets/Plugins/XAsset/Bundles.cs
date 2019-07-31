@@ -159,7 +159,7 @@ namespace Plugins.XAsset
 				assetBundleName = RemapVariantName (assetBundleName);
 			}
 
-			var url = GetDataPath (assetBundleName) + assetBundleName;
+			var url = GetDataPath (assetBundleName);
 			for (int i = 0, max = _bundles.Count; i < max; i++) {
 				var item = _bundles [i];
 				if (!item.name.Equals (url))
@@ -198,7 +198,7 @@ namespace Plugins.XAsset
 		private static string GetDataPath (string bundleName)
 		{
 			if (OverrideBaseDownloadingUrl == null)
-				return dataPath;
+				return dataPath + bundleName;
 			foreach (var @delegate in OverrideBaseDownloadingUrl.GetInvocationList()) {
 				var method = (OverrideDataPathDelegate)@delegate;
 				var res = method (bundleName);
@@ -206,7 +206,7 @@ namespace Plugins.XAsset
 					return res;
 			}
 
-			return dataPath;
+			return dataPath + bundleName;
 		}
 
 		internal static void Update ()

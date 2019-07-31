@@ -256,7 +256,7 @@ namespace Plugins.XAsset
 
         private static string Bundles_overrideBaseDownloadingURL(string bundleName)
         {
-            return !File.Exists(Path.Combine(updatePath, bundleName)) ? null : updatePath;
+            return !File.Exists(Path.Combine(updatePath, bundleName)) ? null : updatePath + bundleName;
         }
     }
 }

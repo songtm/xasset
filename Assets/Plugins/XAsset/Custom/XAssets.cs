@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using Plugins.XAsset;
+using UnityEngine;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -15,22 +17,17 @@ namespace XAsset.Plugins.XAsset.Custom
 
         public static void Initialize(Action onSuccess, Action<string> onError)
         {
-            Bundles.OverrideBaseDownloadingUrl += bundleName =>
+            BundlePathDelegate.Initialize(() =>
             {
-                //todo 自定义bunel加载路径! 是远程下载还是cache,还是安装包里
-//                Debug.Log(bundleName);
-                return null;
-            };
+                //todo bundle异步加载分发策略 目前web bundle好像不能控制下载缓存路径什么的,要不要写一个httpBundle?
+                BundleDispatcher.Initialize(true, 2, 4);
+                AssetAsyncDispatcher.Initialize(true, 40);
+                InitEditorAssetLoader();
 
-            //todo bundle异步加载分发策略 目前web bundle好像不能控制下载缓存路径什么的,要不要写一个httpBundle?
-            BundleDispatcher.Initialize(true, 2, 4);
-            AssetAsyncDispatcher.Initialize(true, 40);
-            InitEditorAssetLoader();
-
-            Assets.Initialize(onSuccess, onError);
+                Assets.Initialize(onSuccess, onError);
+            });
         }
 
-//        [Conditional("UNITY_EDITOR")]
         private static void InitEditorAssetLoader()
         {
 #if UNITY_EDITOR
@@ -65,6 +62,44 @@ namespace XAsset.Plugins.XAsset.Custom
                 return AssetDatabase.LoadAssetAtPath(assetPath, type);
             };
 #endif
+        }
+
+        public static void GetTextFromApp(string path, bool async, Action<string> callback)
+        {
+            var fromDataPath = Utility.GetWebUrlFromDataPath(path);
+            var asset = async
+                ? Assets.LoadAsync(fromDataPath, typeof(TextAsset))
+                : Assets.Load(fromDataPath, typeof(TextAsset));
+
+            asset.completed += delegate
+            {
+                if (asset.error != null)
+                {
+                    Debug.LogError("Error: can't find file " + path);
+                    callback(null);
+                    return;
+                }
+
+                var dir = Path.GetDirectoryName(path);
+                if (!Directory.Exists(dir))
+                    Directory.CreateDirectory(dir);
+                File.WriteAllText(path, asset.text);
+                callback(asset.text);
+                asset.Release();
+            };
+        }
+        //callback(string, isfromCache)
+        public static void GetTextFromCacheOrApp(string path, bool async, Action<string, bool> callback)
+        {
+            path = Utility.GetRelativePath4Update(path);
+            if (!File.Exists(path))
+            {
+                GetTextFromApp(path, async, s => callback(s, false));
+            }
+            else
+            {
+                callback(File.ReadAllText(path), true);
+            }
         }
     }
 }
