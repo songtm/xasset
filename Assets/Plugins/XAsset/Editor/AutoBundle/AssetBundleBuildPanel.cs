@@ -2,10 +2,12 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEditorInternal;
 using UnityEngine;
+using XAsset.Plugins.XAsset.Custom;
 using XAsset.Plugins.XAsset.Editor.AutoBundle;
 using Object = UnityEngine.Object;
 
@@ -46,6 +48,13 @@ namespace Plugins.XAsset.Editor.AutoBundle
             return dirInfo.GetFiles("*.*", option)
                 .Where(f => allowedExtensions.Contains(f.Extension));
         }
+
+        public static void ClearOrCreateDirectory(string dirPath)
+        {
+            if (Directory.Exists(dirPath))
+                Directory.Delete(dirPath, true);
+            Directory.CreateDirectory(dirPath);
+        }
     }
 
     public class AssetBundleBuildPanel : EditorWindow
@@ -75,55 +84,46 @@ namespace Plugins.XAsset.Editor.AutoBundle
 
             var platformName = BuildScript.GetPlatformName();
 
-            var serverRoot = Path.Combine(Utility.AssetBundles, "ServerRoot");
+            var serverABDir = Path.Combine(Path.Combine(Utility.AssetBundles, "ServerRoot"), platformName);
+            ExtClass.ClearOrCreateDirectory(serverABDir);
 
-            BuildScript.CopyAssetBundlesTo(serverRoot);//复制的时候会清空目录的
+            var outputPath = BuildScript.CreateAssetBundleDirectory();
+            var bundleHash = new Dictionary<string, string>();
+            BuildScript.LoadVersions(Path.Combine(outputPath, "versions.txt"), bundleHash);
 
-            var serverABDir = Path.Combine(serverRoot, platformName);
+            var buildConfig = AssetDatabase.LoadAssetAtPath<AssetBundleBuildConfig>(savePath);
+            string webBundleReg = buildConfig.webBundleReg.Trim();
+            var bundlePostStr = buildConfig.bundlePostStr.Trim();
 
-            var files = Directory.GetFiles(serverABDir, "*.manifest", SearchOption.AllDirectories);
-            foreach (var file in files)
+            string ver = "_v20";//todo abenGdir 提交svn 取得版本号
+
+            var smABDir = Path.Combine(Path.Combine(Application.streamingAssetsPath, Utility.AssetBundles), platformName);
+            ExtClass.ClearOrCreateDirectory(smABDir);
+
+            StringBuilder flistSB = new StringBuilder();
+            foreach (var bundleName in bundleHash.Keys.Concat(new []{platformName}))
             {
-                var info = new FileInfo(file);
-                if (info.Exists) info.Delete();
-            }
+                var sourceFileName = Path.Combine(outputPath, bundleName);
+                FileInfo fileInfo = new FileInfo(sourceFileName);
+                var fileSize = fileInfo.Length;
+                var shaSum = HashUtil.GetHashOfFile(sourceFileName);
+                //var md5 = HashUtil.GetMD5OfFile(sourceFileName);
+                //var hash = bundleHash[bundleName];
+                //Debug.Log(sourceFileName +" md5:"+md5 + "  shasum:"+shaSum + "  bundlehash:"+hash);
+                var tmp = $"{bundleName}{ver}";
+                //todo ab 加密 暂不搞 可用于苹果过审
+                File.Copy(sourceFileName, Path.Combine(serverABDir, tmp));
+                flistSB.AppendLine($"{bundleName}:{ver}:{bundlePostStr}:{fileSize}:{shaSum}");
 
-            files = Directory.GetFiles(serverABDir, "*.meta", SearchOption.AllDirectories);
-            foreach (var item in files)
-            {
-                var info = new FileInfo(item);
-                info.Delete();
-            }
-
-            var abGenDir = BuildScript.CreateAssetBundleDirectory();
-            //todo abenGdir 提交svn 取得版本号
-            int ver = 20;
-            var abs = Directory.GetFiles(serverABDir);
-            foreach (string file in abs)
-            {
-                if (Path.HasExtension(file)) continue;
-                //todo ab 加密 暂不搞
-                File.Move(file, $"{file}_v{ver}.ab");
-                //todo 生成映射配置 abmap  flist.lua?
-            }
-
-            //ab webbundle处理
-            var smdir = Path.Combine(Application.streamingAssetsPath, Utility.AssetBundles);
-            if (Directory.Exists(smdir))
-                Directory.Delete(smdir, true);
-            Directory.CreateDirectory(smdir);
-            var smABDir = Path.Combine(smdir, platformName);
-            FileUtil.CopyFileOrDirectory(serverABDir, smABDir);
-            string webBundlePattern = AssetDatabase.LoadAssetAtPath<AssetBundleBuildConfig>(savePath).webBundleReg;
-            var abfiles= Directory.GetFiles(smABDir);
-            foreach (string file in abfiles)
-            {
-                if (Regex.IsMatch(file, webBundlePattern))
+                //ab webbundle处理
+                if (!Regex.IsMatch(sourceFileName, webBundleReg))
                 {
-                    File.Delete(file);
+                    tmp = $"{bundleName}{ver}{bundlePostStr}";
+                    File.Copy(sourceFileName, Path.Combine(smABDir, tmp));
                 }
             }
-
+            File.WriteAllText(Path.Combine(serverABDir, "flist.txt"), flistSB.ToString());
+            File.WriteAllText(Path.Combine(smABDir, "flist.txt"), flistSB.ToString());
 
             //todo 上传到热更服务器
         }
@@ -413,10 +413,13 @@ namespace Plugins.XAsset.Editor.AutoBundle
                         (AssetBundleBuildConfig.GraphMode) EditorGUILayout.EnumPopup("Graph Mode", _config.graphMode);
                 }
                 GUILayout.EndHorizontal();
+                GUILayout.BeginHorizontal();
                 _config.webBundleReg =
-                    EditorGUILayout.TextField(new GUIContent("webBundleReg", "AB包名字正则,匹配就认为是 webBundle"),
+                    EditorGUILayout.TextField(new GUIContent("webBundleRegex", "AB包名字正则,匹配就认为是 webBundle"),
                         _config.webBundleReg);
-
+                _config.bundlePostStr = EditorGUILayout.TextField(new GUIContent("bundlePostStr", "用于过审申请时每次改变ab包的文件名"),
+                        _config.bundlePostStr);
+                GUILayout.EndHorizontal();
                 GUILayout.Space(10);
 
                 //Filter item list

@@ -145,7 +145,7 @@ namespace Plugins.XAsset.Editor
             return items.ToDictionary(item => item, item => manifest.GetAssetBundleHash(item).ToString());
         }
 
-        private static void LoadVersions(string versionsTxt, IDictionary<string, string> versions)
+        public static void LoadVersions(string versionsTxt, IDictionary<string, string> versions)
         {
             if (versions == null)
                 throw new ArgumentNullException("versions");
@@ -424,7 +424,7 @@ namespace Plugins.XAsset.Editor
 #else
                     case BuildTarget.StandaloneOSXIntel:
                     case BuildTarget.StandaloneOSXIntel64:
-                    case BuildTarget.StandaloneOSXUniversal:               
+                    case BuildTarget.StandaloneOSXUniversal:
                                         return "/" + name + ".app";
 
 #endif
