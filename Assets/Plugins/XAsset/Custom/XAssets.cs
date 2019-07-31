@@ -1,22 +1,27 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using Plugins.XAsset;
 using UnityEngine;
+using UnityEngine.Networking;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
 using Debug = UnityEngine.Debug;
+using Utility = Plugins.XAsset.Utility;
 
 namespace XAsset.Plugins.XAsset.Custom
 {
     public static class XAssets
     {
         private static HashSet<string> _assetSet;
+        private static MonoBehaviour owner;
 
-        public static void Initialize(Action onSuccess, Action<string> onError)
+        public static void Initialize(MonoBehaviour monoBehaviour, Action onSuccess, Action<string> onError)
         {
+            owner = monoBehaviour;
             BundlePathDelegate.Initialize(() =>
             {
                 //todo bundle异步加载分发策略 目前web bundle好像不能控制下载缓存路径什么的,要不要写一个httpBundle?
@@ -25,7 +30,7 @@ namespace XAsset.Plugins.XAsset.Custom
                 InitEditorAssetLoader();
 
                 Assets.Initialize(onSuccess, onError);
-            });
+            }, onError);
         }
 
         private static void InitEditorAssetLoader()
@@ -64,41 +69,38 @@ namespace XAsset.Plugins.XAsset.Custom
 #endif
         }
 
-        public static void GetTextFromApp(string path, bool async, Action<string> callback)
+        private static IEnumerator GetText(string url, Action<string> callback)
+        {
+            using (UnityWebRequest www = new UnityWebRequest(url))
+            {
+                www.downloadHandler = new DownloadHandlerBuffer();
+                yield return www.SendWebRequest();
+                if (!string.IsNullOrEmpty(www.error))
+                {
+                    Debug.LogError("error: load url:" + url + " " + www.error);
+                    callback(null);
+                }
+                else
+                    callback(www.downloadHandler.text);
+            }
+        }
+
+        public static void GetTextFromApp(string path, Action<string> callback)
         {
             var fromDataPath = Utility.GetWebUrlFromDataPath(path);
-            var asset = async
-                ? Assets.LoadAsync(fromDataPath, typeof(TextAsset))
-                : Assets.Load(fromDataPath, typeof(TextAsset));
-
-            asset.completed += delegate
-            {
-                if (asset.error != null)
-                {
-                    Debug.LogError("Error: can't find file " + path);
-                    callback(null);
-                    return;
-                }
-
-                var dir = Path.GetDirectoryName(path);
-                if (!Directory.Exists(dir))
-                    Directory.CreateDirectory(dir);
-                File.WriteAllText(path, asset.text);
-                callback(asset.text);
-                asset.Release();
-            };
+            owner.StartCoroutine(GetText(fromDataPath, callback));
         }
-        //callback(string, isfromCache)
-        public static void GetTextFromCacheOrApp(string path, bool async, Action<string, bool> callback)
+
+        public static void GetTextFromCacheOrApp(string path, Action<string> callback)
         {
             var cachePath = Utility.GetRelativePath4Update(path);
             if (!File.Exists(cachePath))
             {
-                GetTextFromApp(path, async, s => callback(s, false));
+                GetTextFromApp(path, callback);
             }
             else
             {
-                callback(File.ReadAllText(cachePath), true);
+                callback(File.ReadAllText(cachePath));
             }
         }
     }

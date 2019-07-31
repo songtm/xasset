@@ -15,7 +15,7 @@ namespace XAsset.Plugins.XAsset.Custom
         private static string _cachePath;
         private static string _appDataPath;
 
-        internal static void Initialize(Action sucess)
+        internal static void Initialize(Action sucess, Action<string> onError)
         {
             if (!Utility.assetBundleMode)
             {
@@ -29,14 +29,20 @@ namespace XAsset.Plugins.XAsset.Custom
             if (string.IsNullOrEmpty(Utility.dataPath)) Utility.dataPath = Application.streamingAssetsPath;
             bundleNeedVerDic.Clear();
 
-            XAssets.GetTextFromCacheOrApp("flist.txt", false, (s, fromCache) =>
+            XAssets.GetTextFromCacheOrApp("flist.txt", s =>
             {
+                if (s == null) onError("error load curversion flist.txt");
                 ParseFlist(s, bundleNeedVerDic);
-                XAssets.GetTextFromApp("flist.txt", false, s1 =>
+                XAssets.GetTextFromApp("flist.txt", s1 =>
                 {
-                    ParseFlist(s1, interValidBundleDic, true);
-                    InitPathSearcher();
-                    sucess();
+                    if (s1 == null) onError("error load internal flist.txt");
+                    else
+                    {
+                        ParseFlist(s1, interValidBundleDic, true);
+                        InitPathSearcher();
+                        sucess();
+                    }
+
                 });
             });
         }
