@@ -16,6 +16,7 @@ namespace Plugins.XAsset.Editor.AutoBundle
 
         public string AtlasOutputDir = "Assets/SpriteAtlases";
         public string SpriteExtension = ".png;.jpg;.jpeg";
+        public string webBundleReg = ".*_2web";
         public List<AssetBundleFilter> filters = new List<AssetBundleFilter>();
     }
 

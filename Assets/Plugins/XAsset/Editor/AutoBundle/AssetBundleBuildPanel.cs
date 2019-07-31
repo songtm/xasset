@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEditorInternal;
 using UnityEngine;
@@ -10,47 +11,124 @@ using Object = UnityEngine.Object;
 
 namespace Plugins.XAsset.Editor.AutoBundle
 {
-
     public class HideXassetMemu
     {
         [MenuItem("Assets/AssetBundles/按目录标记", true)]
         static bool Hide1() => false;
+
         [MenuItem("Assets/AssetBundles/按文件标记", true)]
         static bool Hide2() => false;
 
 
         [MenuItem("Assets/AssetBundles/按名称标记", true)]
-        static bool Hide3() =>false;
+        static bool Hide3() => false;
+
         [MenuItem("Assets/AssetBundles/生成配置", true)]
-        static bool Hide4() =>false;
+        static bool Hide4() => false;
+
         [MenuItem("Assets/AssetBundles/生成播放器", true)]
-        static bool Hide5() =>false;
+        static bool Hide5() => false;
+
         [MenuItem("标记资源", true)]
-        static bool Hide6() =>false;
+        static bool Hide6() => false;
 
-
+        [MenuItem("Assets/AssetBundles/生成資源包", true)]
+        static bool Hide7() => false;
     }
+
     public static class ExtClass
     {
-        public static IEnumerable<FileInfo> GetFilesByExtensions(this DirectoryInfo dirInfo,  string[] extensions, SearchOption option)
+        public static IEnumerable<FileInfo> GetFilesByExtensions(this DirectoryInfo dirInfo, string[] extensions,
+            SearchOption option)
         {
             var allowedExtensions = new HashSet<string>(extensions, StringComparer.OrdinalIgnoreCase);
 
             return dirInfo.GetFiles("*.*", option)
                 .Where(f => allowedExtensions.Contains(f.Extension));
         }
-
     }
 
     public class AssetBundleBuildPanel : EditorWindow
     {
+        public static string savePath = "Assets/bundle_rule.asset";
+
+        private AssetBundleBuildConfig _config;
+        private ReorderableList _list;
+        private Vector2 _scrollPosition = Vector2.zero;
+
+        AssetBundleBuildPanel()
+        {
+        }
+
+
         [MenuItem("Assets/AssetBundles/AutoBundleSystem")]
         static void Open()
         {
             GetWindow<AssetBundleBuildPanel>("ABSystem", true);
         }
 
-        static void BuildAssetBundles()
+        [MenuItem("Assets/AssetBundles/生成AB包")]
+        private static void BuildAssetBundles()
+        {
+            BuildScript.BuildManifest();
+            BuildScript.BuildAssetBundles();
+
+            var platformName = BuildScript.GetPlatformName();
+
+            var serverRoot = Path.Combine(Utility.AssetBundles, "ServerRoot");
+
+            BuildScript.CopyAssetBundlesTo(serverRoot);//复制的时候会清空目录的
+
+            var serverABDir = Path.Combine(serverRoot, platformName);
+
+            var files = Directory.GetFiles(serverABDir, "*.manifest", SearchOption.AllDirectories);
+            foreach (var file in files)
+            {
+                var info = new FileInfo(file);
+                if (info.Exists) info.Delete();
+            }
+
+            files = Directory.GetFiles(serverABDir, "*.meta", SearchOption.AllDirectories);
+            foreach (var item in files)
+            {
+                var info = new FileInfo(item);
+                info.Delete();
+            }
+
+            var abGenDir = BuildScript.CreateAssetBundleDirectory();
+            //todo abenGdir 提交svn 取得版本号
+            int ver = 20;
+            var abs = Directory.GetFiles(serverABDir);
+            foreach (string file in abs)
+            {
+                if (Path.HasExtension(file)) continue;
+                //todo ab 加密 暂不搞
+                File.Move(file, $"{file}_v{ver}.ab");
+                //todo 生成映射配置 abmap  flist.lua?
+            }
+
+            //ab webbundle处理
+            var smdir = Path.Combine(Application.streamingAssetsPath, Utility.AssetBundles);
+            if (Directory.Exists(smdir))
+                Directory.Delete(smdir, true);
+            Directory.CreateDirectory(smdir);
+            var smABDir = Path.Combine(smdir, platformName);
+            FileUtil.CopyFileOrDirectory(serverABDir, smABDir);
+            string webBundlePattern = AssetDatabase.LoadAssetAtPath<AssetBundleBuildConfig>(savePath).webBundleReg;
+            var abfiles= Directory.GetFiles(smABDir);
+            foreach (string file in abfiles)
+            {
+                if (Regex.IsMatch(file, webBundlePattern))
+                {
+                    File.Delete(file);
+                }
+            }
+
+
+            //todo 上传到热更服务器
+        }
+
+        static void BuildManifestFile()
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode)
             {
@@ -68,12 +146,13 @@ namespace Plugins.XAsset.Editor.AutoBundle
             {
                 AssetTarget.IgnoreDepFindExt.Add(spriteExt);
             }
+
             AssetTarget.IgnoreDepFindExt.Add(".mp3");
-            AssetTarget.IgnoreDepFindExt.Add(".mp4");//todo add some more!
+            AssetTarget.IgnoreDepFindExt.Add(".mp4"); //todo add some more!
 
             AssetTarget.AllAssetTargts.Clear();
             AssetTarget.AutoAssetDirs.Clear();
-            Debug.Log("111----- "+Time.realtimeSinceStartup);
+            Debug.Log("111----- " + Time.realtimeSinceStartup);
 
             foreach (var f in config.filters)
             {
@@ -87,6 +166,7 @@ namespace Plugins.XAsset.Editor.AutoBundle
                     }
                 }
             }
+
             foreach (var f in config.filters)
             {
                 if (f.valid && (f.packMode == PackMode.EachDirAtlasAuto || f.packMode == PackMode.EachDirAtlasManul))
@@ -97,23 +177,24 @@ namespace Plugins.XAsset.Editor.AutoBundle
                             : AssetBundleExportType.AtlasUsed);
                 }
             }
-            Debug.Log("222----- "+Time.realtimeSinceStartup);
+
+            Debug.Log("222----- " + Time.realtimeSinceStartup);
             foreach (var f in config.filters)
             {
                 if (f.valid && f.packMode != PackMode.EachDirAtlasAuto
                             && f.packMode != PackMode.EachDirAtlasManul && f.packMode != PackMode.EachDirAuto)
                     AddRootTargets(new DirectoryInfo(f.path), f.packMode, f.filter, AssetBundleExportType.Root);
             }
-            Debug.Log("333----- "+Time.realtimeSinceStartup);
+
+            Debug.Log("333----- " + Time.realtimeSinceStartup);
 
             var bundleMap = AssetTarget.ProcessRelations(config.AtlasOutputDir);
 
             GenXssetManifest(bundleMap);
 
 
-
             AssetDatabase.Refresh();
-            Debug.Log("---end"+Time.realtimeSinceStartup);
+            Debug.Log("---end" + Time.realtimeSinceStartup);
         }
 
         private static void GenXssetManifest(Dictionary<string, List<string>> bundleMap)
@@ -148,9 +229,10 @@ namespace Plugins.XAsset.Editor.AutoBundle
             {
                 dirDic[dirs[i]] = i;
             }
+
             assetsManifest.dirs = dirs;
 
-            var  assetDatas = new List<AssetData>(1000);
+            var assetDatas = new List<AssetData>(1000);
             foreach (var keyValuePair in bundleMap)
             {
                 var bundleName = keyValuePair.Key;
@@ -171,9 +253,8 @@ namespace Plugins.XAsset.Editor.AutoBundle
             assetsManifest.assets = assetDatas.ToArray();
             EditorUtility.SetDirty(assetsManifest);
             AssetDatabase.SaveAssets();
-
-
         }
+
         private static void AddRootTargets(DirectoryInfo bundleDir, PackMode fPackMode, string pattern,
             AssetBundleExportType exportType,
             SearchOption searchOption = SearchOption.AllDirectories)
@@ -189,18 +270,8 @@ namespace Plugins.XAsset.Editor.AutoBundle
 
                 var assetPath = "Assets" + file.FullName.Replace(Application.dataPath, "");
                 var bundleName = AssetTarget.GetBundleName(bundleDir, file, fPackMode, pattern);
-                new AssetTarget(assetPath, bundleName,fPackMode, exportType);
+                new AssetTarget(assetPath, bundleName, fPackMode, exportType);
             }
-        }
-
-        public static string savePath = "Assets/bundle_rule.asset";
-
-        private AssetBundleBuildConfig _config;
-        private ReorderableList _list;
-        private Vector2 _scrollPosition = Vector2.zero;
-
-        AssetBundleBuildPanel()
-        {
         }
 
         void OnListElementGUI(Rect rect, int index, bool isactive, bool isfocused)
@@ -234,7 +305,7 @@ namespace Plugins.XAsset.Editor.AutoBundle
             r.width = 120;
             filter.packMode = (PackMode) EditorGUI.EnumPopup(r, filter.packMode);
             if (filter.packMode != PackMode.EachDirAtlasAuto && filter.packMode != PackMode.EachDirAtlasManul
-                && filter.packMode != PackMode.EachDirAuto)
+                                                             && filter.packMode != PackMode.EachDirAuto)
             {
                 r.xMin = r.xMax + GAP;
                 r.xMax = rect.xMax;
@@ -338,9 +409,13 @@ namespace Plugins.XAsset.Editor.AutoBundle
                 {
                     _config.AtlasOutputDir = EditorGUILayout.TextField("AtlasOutputDir", _config.AtlasOutputDir);
                     _config.SpriteExtension = EditorGUILayout.TextField("SpriteExtension", _config.SpriteExtension);
-                    _config.graphMode = (AssetBundleBuildConfig.GraphMode) EditorGUILayout.EnumPopup("Graph Mode", _config.graphMode);
+                    _config.graphMode =
+                        (AssetBundleBuildConfig.GraphMode) EditorGUILayout.EnumPopup("Graph Mode", _config.graphMode);
                 }
                 GUILayout.EndHorizontal();
+                _config.webBundleReg =
+                    EditorGUILayout.TextField(new GUIContent("webBundleReg", "AB包名字正则,匹配就认为是 webBundle"),
+                        _config.webBundleReg);
 
                 GUILayout.Space(10);
 
@@ -364,7 +439,7 @@ namespace Plugins.XAsset.Editor.AutoBundle
         private void Build()
         {
             Save();
-            BuildAssetBundles();
+            BuildManifestFile();
         }
 
         void Save()
