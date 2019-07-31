@@ -8,10 +8,8 @@ namespace XAsset.Plugins.XAsset.Custom
 {
     public static class BundlePathDelegate
     {
-        private static Dictionary<string, string> bundlePathDic = new Dictionary<string, string>();
-        private static Dictionary<string, string> bundleNeedVerDic = new Dictionary<string, string>(); //bundle->ver
-
-        private static Dictionary<string, string>
+        private static readonly Dictionary<string, string> bundleNeedVerDic = new Dictionary<string, string>(); //bundle->ver
+        private static readonly Dictionary<string, string>
             interValidBundleDic = new Dictionary<string, string>(); //bundlename->bundle_v22r1.ab
 
         private static string _cachePath;
@@ -27,14 +25,14 @@ namespace XAsset.Plugins.XAsset.Custom
 
             var platform = Utility.GetPlatform();
             _cachePath = Path.Combine(Application.persistentDataPath, Path.Combine(Utility.AssetBundles, platform));
-            _appDataPath = Path.Combine(Utility.dataPath, Path.Combine(Utility.AssetBundles, platform));
-
+            _appDataPath = Path.Combine(Application.streamingAssetsPath, Path.Combine(Utility.AssetBundles, platform));
+            if (string.IsNullOrEmpty(Utility.dataPath)) Utility.dataPath = Application.streamingAssetsPath;
             bundleNeedVerDic.Clear();
 
-            XAssets.GetTextFromCacheOrApp("flist.txt", true, (s, fromCache) =>
+            XAssets.GetTextFromCacheOrApp("flist.txt", false, (s, fromCache) =>
             {
                 ParseFlist(s, bundleNeedVerDic);
-                XAssets.GetTextFromApp("flist.txt", true, s1 =>
+                XAssets.GetTextFromApp("flist.txt", false, s1 =>
                 {
                     ParseFlist(s1, interValidBundleDic, true);
                     InitPathSearcher();

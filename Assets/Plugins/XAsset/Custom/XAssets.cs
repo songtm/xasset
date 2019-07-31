@@ -91,14 +91,14 @@ namespace XAsset.Plugins.XAsset.Custom
         //callback(string, isfromCache)
         public static void GetTextFromCacheOrApp(string path, bool async, Action<string, bool> callback)
         {
-            path = Utility.GetRelativePath4Update(path);
-            if (!File.Exists(path))
+            var cachePath = Utility.GetRelativePath4Update(path);
+            if (!File.Exists(cachePath))
             {
                 GetTextFromApp(path, async, s => callback(s, false));
             }
             else
             {
-                callback(File.ReadAllText(path), true);
+                callback(File.ReadAllText(cachePath), true);
             }
         }
     }
