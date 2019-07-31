@@ -61,12 +61,13 @@ namespace XAsset.Plugins.XAsset.Custom
                         var bundleName = fields[0];
                         var ver = fields[1];
                         var postStr = fields[2];
-                        var fielsize = fields[3];
-                        var shasum = fields[4];
+//                        var fielsize = fields[3];
+//                        var shasum = fields[4];
+                        var webBundle = fields[5];
                         if (parseInteralBundle)
                         {
                             var needVer = bundleNeedVerDic[bundleName];
-                            if (needVer == ver)
+                            if (needVer == ver && webBundle == "False")
                                 dic.Add(bundleName, $"{bundleName}{ver}{postStr}");
                         }
                         else

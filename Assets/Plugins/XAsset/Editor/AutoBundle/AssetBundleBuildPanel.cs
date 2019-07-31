@@ -113,14 +113,16 @@ namespace Plugins.XAsset.Editor.AutoBundle
                 var tmp = $"{bundleName}{ver}";
                 //todo ab 加密 暂不搞 可用于苹果过审
                 File.Copy(sourceFileName, Path.Combine(serverABDir, tmp));
-                flistSB.AppendLine($"{bundleName}:{ver}:{bundlePostStr}:{fileSize}:{shaSum}");
 
+                var webBundle = true;
                 //ab webbundle处理
                 if (!Regex.IsMatch(sourceFileName, webBundleReg))
                 {
+                    webBundle = false;
                     tmp = $"{bundleName}{ver}{bundlePostStr}";
                     File.Copy(sourceFileName, Path.Combine(smABDir, tmp));
                 }
+                flistSB.AppendLine($"{bundleName}:{ver}:{bundlePostStr}:{fileSize}:{shaSum}:{webBundle}");
             }
             File.WriteAllText(Path.Combine(serverABDir, "flist.txt"), flistSB.ToString());
             File.WriteAllText(Path.Combine(smABDir, "flist.txt"), flistSB.ToString());
