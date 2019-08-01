@@ -1,10 +1,6 @@
 ﻿using System.IO;
-using System.Net;
-using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
-using UnityEngine.Windows;
-using File = System.IO.File;
 
 namespace XAsset.Plugins.XAsset.Custom
 {

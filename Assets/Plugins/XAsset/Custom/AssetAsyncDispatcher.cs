@@ -21,7 +21,7 @@ namespace XAsset.Plugins.XAsset.Custom
 
     public static  class AssetAsyncDispatcher
     {
-        public static bool enabled = true;
+        public static bool enabled = false;
         public static int maxCountPerFrame = 40;
         private static readonly PriorityQueue<BundleAssetAsync> _assetAsyncQueue = new PriorityQueue<BundleAssetAsync>();
 

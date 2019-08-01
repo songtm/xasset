@@ -11,7 +11,7 @@ namespace XAsset.Plugins.XAsset.Custom
 {
     public static class BundleDispatcher
     {
-        public static bool enabled = true;
+        public static bool enabled = false;
         public static int webBundleMax = 2;
         public static int asyncBundleMax = 4;
 
