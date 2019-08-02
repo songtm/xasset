@@ -12,8 +12,8 @@ namespace XAsset.Plugins.XAsset.Custom
         private static readonly Dictionary<string, string>
             interValidBundleDic = new Dictionary<string, string>(); //bundlename->bundle_v22r1.ab
 
-        private static string _cachePath;
-        private static string _appDataPath;
+        public static string cachePath;
+        public static string appDataPath;
 
         internal static void Initialize(Action sucess, Action<string> onError)
         {
@@ -24,8 +24,8 @@ namespace XAsset.Plugins.XAsset.Custom
             }
 
             var platform = Utility.GetPlatform();
-            _cachePath = Path.Combine(Application.persistentDataPath, Path.Combine(Utility.AssetBundles, platform));
-            _appDataPath = Path.Combine(Application.streamingAssetsPath, Path.Combine(Utility.AssetBundles, platform));
+            cachePath = Path.Combine(Application.persistentDataPath, Path.Combine(Utility.AssetBundles, platform));
+            appDataPath = Path.Combine(Application.streamingAssetsPath, Path.Combine(Utility.AssetBundles, platform));
             if (string.IsNullOrEmpty(Utility.dataPath)) Utility.dataPath = Application.streamingAssetsPath;
             bundleNeedVerDic.Clear();
 
@@ -87,11 +87,11 @@ namespace XAsset.Plugins.XAsset.Custom
                 if (interValidBundleDic.ContainsKey(bundleName))
                 {
                     var name = interValidBundleDic[bundleName];
-                    res = Path.Combine(_appDataPath, name);
+                    res = Path.Combine(appDataPath, name);
                 }
-                else if (File.Exists(Path.Combine(_cachePath, bundleCacheName)))
+                else if (File.Exists(Path.Combine(cachePath, bundleCacheName)))
                 {
-                    res = Path.Combine(_cachePath, bundleCacheName);
+                    res = Path.Combine(cachePath, bundleCacheName);
                 }
                 else
                 {
