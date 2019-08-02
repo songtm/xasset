@@ -254,8 +254,9 @@ namespace Plugins.XAsset
             return true;
         }
 
-        private static string Bundles_overrideBaseDownloadingURL(string bundleName)
+        private static string Bundles_overrideBaseDownloadingURL(string bundleName, out string realAbName, out string shaSum)
         {
+            realAbName = shaSum = null;
             return !File.Exists(Path.Combine(updatePath, bundleName)) ? null : updatePath + bundleName;
         }
     }

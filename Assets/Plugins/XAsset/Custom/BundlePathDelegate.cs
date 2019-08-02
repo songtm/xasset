@@ -9,6 +9,7 @@ namespace XAsset.Plugins.XAsset.Custom
     public static class BundlePathDelegate
     {
         private static readonly Dictionary<string, string> bundleNeedVerDic = new Dictionary<string, string>(); //bundle->ver
+        private static readonly Dictionary<string, string> bundleNeedShaSumDic = new Dictionary<string, string>(); //bundle->ver
         private static readonly Dictionary<string, string>
             interValidBundleDic = new Dictionary<string, string>(); //bundlename->bundle_v22r1.ab
 
@@ -17,6 +18,9 @@ namespace XAsset.Plugins.XAsset.Custom
 
         internal static void Initialize(Action sucess, Action<string> onError)
         {
+            bundleNeedVerDic.Clear();
+            bundleNeedShaSumDic.Clear();
+            interValidBundleDic.Clear();
             if (!Utility.assetBundleMode)
             {
                 sucess();
@@ -62,7 +66,7 @@ namespace XAsset.Plugins.XAsset.Custom
                         var ver = fields[1];
                         var postStr = fields[2];
 //                        var fielsize = fields[3];
-//                        var shasum = fields[4];
+                        var shasum = fields[4];
                         var webBundle = fields[5];
                         if (parseInteralBundle)
                         {
@@ -71,7 +75,10 @@ namespace XAsset.Plugins.XAsset.Custom
                                 dic.Add(bundleName, $"{bundleName}{ver}{postStr}");
                         }
                         else
+                        {
+                            bundleNeedShaSumDic.Add(bundleName, shasum);
                             dic.Add(bundleName, ver);
+                        }
                     }
                 }
             }
@@ -80,13 +87,16 @@ namespace XAsset.Plugins.XAsset.Custom
 
         private static void InitPathSearcher()
         {
-            Bundles.OverrideBaseDownloadingUrl += bundleName =>
+            Bundles.OverrideBaseDownloadingUrl += (string bundleName, out string realBundleName, out string shaSum) =>
             {
                 string res;
                 var bundleCacheName = bundleName + bundleNeedVerDic[bundleName];
+                realBundleName = bundleCacheName;
+                shaSum = bundleNeedShaSumDic[bundleName];
                 if (interValidBundleDic.ContainsKey(bundleName))
                 {
                     var name = interValidBundleDic[bundleName];
+                    realBundleName = name;
                     res = Path.Combine(appDataPath, name);
                 }
                 else if (File.Exists(Path.Combine(cachePath, bundleCacheName)))

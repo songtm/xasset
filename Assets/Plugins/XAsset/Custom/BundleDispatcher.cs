@@ -50,7 +50,7 @@ namespace XAsset.Plugins.XAsset.Custom
             if (!enabled) return;
             if (bundle.loadState == LoadState.Init)
             {
-                if (bundle is WebBundle)
+                if (bundle is WebBundleEx)
                 {
                     _webBundleQeue.Up(bundle.queuePos);
                 }
@@ -70,7 +70,7 @@ namespace XAsset.Plugins.XAsset.Custom
             {
                 foreach (var bundle in ready2Load) //todo check 是不是由前往后的
                 {
-                    if (bundle is WebBundle)
+                    if (bundle is WebBundleEx)
                         _webBundleQeue.Enqueue(bundle);
                     else if (bundle is BundleAsync)
                         _asyncBundleQueue.Enqueue(bundle);

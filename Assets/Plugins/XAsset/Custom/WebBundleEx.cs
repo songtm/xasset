@@ -7,7 +7,9 @@ namespace XAsset.Plugins.XAsset.Custom
 {
     public class WebBundleEx : Bundle
     {
+        public static bool downloadCheck = false;
         public string assetBundleName;
+        public string shaSum;
         private UnityWebRequest _webFileReq;
         private AssetBundleCreateRequest _bundlReq;
         private string _savePath;
@@ -34,6 +36,15 @@ namespace XAsset.Plugins.XAsset.Custom
                             _error = _webFileReq.error;
                             _webFileReq.Dispose();
                             _webFileReq = null;
+                            if (downloadCheck)
+                            {
+                                if (HashUtil.GetHashOfFile(_savePath)!= shaSum)
+                                {
+                                    _error = "sha sum check failed";
+                                    Debug.LogError(_error);
+                                    return true;
+                                }
+                            }
                             _bundlReq = AssetBundle.LoadFromFileAsync(_savePath);
                             loadState = LoadState.LoadAsset;
                         }

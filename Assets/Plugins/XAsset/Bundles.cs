@@ -33,7 +33,7 @@ using Debug = UnityEngine.Debug;
 
 namespace Plugins.XAsset
 {
-	public delegate string OverrideDataPathDelegate (string bundleName);
+	public delegate string OverrideDataPathDelegate (string bundleName, out string realABName, out string shaSum);
 
 	public static class Bundles
 	{
@@ -159,7 +159,7 @@ namespace Plugins.XAsset
 				assetBundleName = RemapVariantName (assetBundleName);
 			}
 
-			var url = GetDataPath (assetBundleName);
+			var url = GetDataPath (assetBundleName, out var realBundleName, out var bundleShaSum);
 			for (int i = 0, max = _bundles.Count; i < max; i++) {
 				var item = _bundles [i];
 				if (!item.name.Equals (url))
@@ -174,16 +174,18 @@ namespace Plugins.XAsset
 			    url.StartsWith ("https://") ||
 			    url.StartsWith ("file://") ||
 			    url.StartsWith ("ftp://"))
-				bundle = new WebBundle {
-					hash = manifest != null ? manifest.GetAssetBundleHash (assetBundleName) : new Hash128(),
-					cache = !isLoadingAssetBundleManifest
+				bundle = new WebBundleEx {
+					//hash = manifest != null ? manifest.GetAssetBundleHash (assetBundleName) : new Hash128(),
+					//cache = !isLoadingAssetBundleManifest
+					assetBundleName = realBundleName,
+					shaSum = bundleShaSum
 				};
 			else
 				bundle = asyncMode ? new BundleAsync () : new Bundle ();
 
 			bundle.name = url;
 			_bundles.Add (bundle);
-			if (MAX_LOAD_SIZE_PERFREME > 0 && (bundle is BundleAsync || bundle is WebBundle)) {
+			if (MAX_LOAD_SIZE_PERFREME > 0 && (bundle is BundleAsync || bundle is WebBundleEx)) {
 				_ready2Load.Add (bundle);
 			} else {
 				bundle.Load ();
@@ -195,13 +197,15 @@ namespace Plugins.XAsset
 			return bundle;
 		}
 
-		private static string GetDataPath (string bundleName)
+		private static string GetDataPath (string bundleName, out string realBundleName, out string bundleShaSum)
 		{
+			realBundleName = null;
+			bundleShaSum = null;
 			if (OverrideBaseDownloadingUrl == null)
 				return dataPath + bundleName;
 			foreach (var @delegate in OverrideBaseDownloadingUrl.GetInvocationList()) {
 				var method = (OverrideDataPathDelegate)@delegate;
-				var res = method (bundleName);
+				var res = method (bundleName, out realBundleName, out bundleShaSum);
 				if (res != null)
 					return res;
 			}
