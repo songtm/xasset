@@ -121,7 +121,7 @@ namespace Plugins.XAsset
 
 		public override string error
 		{
-			get { return _request.error; }
+			get { return _request != null ? _request.error: null; }
 		}
 
 		public override bool isDone
@@ -157,6 +157,7 @@ namespace Plugins.XAsset
 		{
 #if UNITY_2018_3_OR_NEWER
             _request = cache ? UnityWebRequestAssetBundle.GetAssetBundle(name,hash) : UnityWebRequestAssetBundle.GetAssetBundle(name);
+            _request.SendWebRequest();
 #else
 			_request = cache ? WWW.LoadFromCacheOrDownload(name, hash) : new WWW(name);
 #endif
