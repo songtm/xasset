@@ -231,8 +231,11 @@ namespace Plugins.XAsset.Editor.AutoBundle
             {
                 foreach (var s in keyValuePair.Value)
                 {
-                    var dir = Path.GetDirectoryName(s).Replace("\\", "/");
-                    dirset.Add(dir);
+                    if (AssetTarget.WillWrite2Manifest(s))
+                    {
+                        var dir = Path.GetDirectoryName(s).Replace("\\", "/");
+                        dirset.Add(dir);
+                    }
                 }
             }
 
@@ -251,6 +254,8 @@ namespace Plugins.XAsset.Editor.AutoBundle
                 var bundleName = keyValuePair.Key;
                 foreach (var assetPath in keyValuePair.Value)
                 {
+                    if (!AssetTarget.WillWrite2Manifest(assetPath)) continue;
+
                     var dir = Path.GetDirectoryName(assetPath).Replace("\\", "/");
                     var data = new AssetData
                     {

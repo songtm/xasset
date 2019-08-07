@@ -41,6 +41,24 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
 
         private bool _marked;
 
+        public static bool WillWrite2Manifest(string assetPath)
+        {
+            //return true; //test
+            if (assetPath.EndsWith(".spriteatlas")) return true;//late binding的时候要用这个atlas
+            return AssetBundleBuildConfig.IsManualReference(AllAssetTargts[assetPath]._bundlePackMode);
+        }
+
+        public static List<string> GetManualRefAssets()//清理资源的根源!
+        {
+            var res = new List<string>();
+            foreach (var assetTargt in AllAssetTargts)
+            {
+                if (AssetBundleBuildConfig.IsManualReference(assetTargt.Value._bundlePackMode))
+                    res.Add(assetTargt.Key);
+            }
+            return res;
+        }
+
         public AssetTarget(string assetPath, string bundleName, PackMode bundlePackMode, AssetBundleExportType exportType)
         {
             _assetPath = assetPath;
