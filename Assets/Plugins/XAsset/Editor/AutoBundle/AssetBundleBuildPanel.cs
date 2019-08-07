@@ -59,6 +59,14 @@ namespace Plugins.XAsset.Editor.AutoBundle
 
     public class AssetBundleBuildPanel : EditorWindow
     {
+        enum Mode
+        {
+            AssetsPath,
+            BundleRules,
+        }
+
+        private Mode m_Mode = Mode.AssetsPath;
+
         public static string savePath = "Assets/bundle_rule.asset";
 
         private AssetBundleBuildConfig _config;
@@ -95,13 +103,14 @@ namespace Plugins.XAsset.Editor.AutoBundle
             string webBundleReg = buildConfig.webBundleReg.Trim();
             var bundlePostStr = buildConfig.bundlePostStr.Trim();
 
-            string ver = "_v20";//todo abenGdir 提交svn 取得版本号
+            string ver = "_v20"; //todo abenGdir 提交svn 取得版本号
 
-            var smABDir = Path.Combine(Path.Combine(Application.streamingAssetsPath, Utility.AssetBundles), platformName);
+            var smABDir = Path.Combine(Path.Combine(Application.streamingAssetsPath, Utility.AssetBundles),
+                platformName);
             ExtClass.ClearOrCreateDirectory(smABDir);
 
             StringBuilder flistSB = new StringBuilder();
-            foreach (var bundleName in bundleHash.Keys.Concat(new []{platformName}))
+            foreach (var bundleName in bundleHash.Keys.Concat(new[] {platformName}))
             {
                 var sourceFileName = Path.Combine(outputPath, bundleName);
                 FileInfo fileInfo = new FileInfo(sourceFileName);
@@ -122,8 +131,10 @@ namespace Plugins.XAsset.Editor.AutoBundle
                     tmp = $"{bundleName}{ver}{bundlePostStr}";
                     File.Copy(sourceFileName, Path.Combine(smABDir, tmp));
                 }
+
                 flistSB.AppendLine($"{bundleName}:{ver}:{bundlePostStr}:{fileSize}:{shaSum}:{webBundle}");
             }
+
             File.WriteAllText(Path.Combine(serverABDir, "flist.txt"), flistSB.ToString());
             File.WriteAllText(Path.Combine(smABDir, "flist.txt"), flistSB.ToString());
 
@@ -371,6 +382,25 @@ namespace Plugins.XAsset.Editor.AutoBundle
 
         void OnGUI()
         {
+            var labels = new[] {"AssetsPath", "BundleRules"};
+
+            GUILayout.BeginHorizontal();
+            GUILayout.FlexibleSpace();
+            m_Mode = (Mode) GUILayout.Toolbar((int) m_Mode, labels);
+            GUILayout.EndHorizontal();
+            switch (m_Mode)
+            {
+                case Mode.BundleRules:
+                    OnGUIBundleRules();
+                    break;
+                case Mode.AssetsPath:
+                    AssetsPathPanel.OnGUI();
+                    break;
+            }
+        }
+
+        private void OnGUIBundleRules()
+        {
             if (_config == null)
             {
                 InitConfig();
@@ -420,7 +450,7 @@ namespace Plugins.XAsset.Editor.AutoBundle
                     EditorGUILayout.TextField(new GUIContent("webBundleRegex", "AB包名字正则,匹配就认为是 webBundle"),
                         _config.webBundleReg);
                 _config.bundlePostStr = EditorGUILayout.TextField(new GUIContent("bundlePostStr", "用于过审申请时每次改变ab包的文件名"),
-                        _config.bundlePostStr);
+                    _config.bundlePostStr);
                 GUILayout.EndHorizontal();
                 GUILayout.Space(10);
 
