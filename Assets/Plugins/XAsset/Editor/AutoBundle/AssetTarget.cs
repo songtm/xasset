@@ -27,7 +27,7 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
     public class AssetTarget
     {
         public static HashSet<string> IgnoreDepFindExt = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
+        public static bool debug = false;
         private string _bundleName;
         private PackMode _bundlePackMode;
         private AssetBundleExportType _exportType;
@@ -43,7 +43,7 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
 
         public static bool WillWrite2Manifest(string assetPath)
         {
-            //return true; //test
+            if (debug) return true;
             if (assetPath.EndsWith(".spriteatlas")) return true;//late binding的时候要用这个atlas
             return AssetBundleBuildConfig.IsManualReference(AllAssetTargts[assetPath]._bundlePackMode);
         }
@@ -155,8 +155,8 @@ namespace XAsset.Plugins.XAsset.Editor.AutoBundle
 //                    Debug.Log(("---unused sprite asset: " + assetTargt.Key));
                 }
             }
-
-            SaveRelationMap(bundleMap); //注意这里要去掉unused的asset
+            if (debug)
+                SaveRelationMap(bundleMap); //注意这里要去掉unused的asset
 
 #if NEW_ATLAS_SYSTEM
             ProcessSpriteAtlas(bundleMap, configAtlasOutputDir);

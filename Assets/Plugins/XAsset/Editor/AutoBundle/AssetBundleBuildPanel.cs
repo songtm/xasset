@@ -417,6 +417,7 @@ namespace Plugins.XAsset.Editor.AutoBundle
             }
 
             bool execBuild = false;
+            bool debugBuild = false;
             //tool bar
             GUILayout.BeginHorizontal(EditorStyles.toolbar);
             {
@@ -430,7 +431,13 @@ namespace Plugins.XAsset.Editor.AutoBundle
                     Save();
                 }
 
+
                 GUILayout.FlexibleSpace();
+                if (GUILayout.Button("BuildDebug", EditorStyles.toolbarButton))
+                {
+                    execBuild = true;
+                    debugBuild = true;
+                }
                 if (GUILayout.Button("Build", EditorStyles.toolbarButton))
                 {
                     execBuild = true;
@@ -473,11 +480,12 @@ namespace Plugins.XAsset.Editor.AutoBundle
                 EditorUtility.SetDirty(_config);
 
             if (execBuild)
-                Build();
+                Build(debugBuild);
         }
 
-        private void Build()
+        private void Build(bool debug = false)
         {
+            AssetTarget.debug = debug;
             Save();
             BuildManifestFile();
         }
