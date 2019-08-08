@@ -108,7 +108,7 @@ namespace XAsset.Plugins.XAsset.Custom
                     res = Utility.GetDownloadURL(bundleCacheName);
                 }
 
-                Debug.Log(res);
+//                Debug.Log(res);
                 return res;
             };
         }
